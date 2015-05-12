@@ -77,13 +77,14 @@ sub daemonize {
 sub reopen_std {
     my $self = shift;
 
-    (close STDIN and open STDIN, '</dev/null')
+    open my $dev_null, '+>', '/dev/null'
+        or croak(sprintf qq{Can't open /dev/null: %s\n}, $OS_ERROR);
+
+    (close STDIN  and POSIX::dup2(0, $dev_null)
         or croak(sprintf qq{Can't reopen STDIN: %s\n},  $OS_ERROR);
-
-    (close STDOUT and open STDOUT, '>/dev/null')
+    (close STDOUT and POSIX::dup2(1, $dev_null)
         or croak(sprintf qq{Can't reopen STDOUT: %s\n}, $OS_ERROR);
-
-    (close STDERR and open STDERR, '>&STDOUT')
+    (close STDERR and POSIX::dup2(2, $dev_null)
         or croak(sprintf qq{Can't reopen STDERR: %s\n}, $OS_ERROR);
 
     return $self;
