@@ -4,7 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 use POSIX ();
-use Carp qw(croak);
+use Carp qw(carp croak);
 use English qw(-no_match_vars);
 
 our $VERSION = '0.01';
@@ -48,19 +48,25 @@ sub daemonize {
 
     # Fork and kill parent
     if (not $self->dry_run) {
-        my $pid = fork;
+        my $pid = fork; # returns child pid to the parent and 0 to the child
 
         if (defined $pid) {
-            exit;
+            # fork returned 0, so this branch is the child
+            if ($pid == 0) {
+                POSIX::setsid()
+                    or croak(sprintf qq{Can't start a new session: %s\n}, $OS_ERROR);
+
+                $self->reopen_std;
+            }
+
+            # this branch is the parent
+            else {
+                exit; # parent exiting
+            }
         }
         else {
-            croak(sprintf qq{Can't fork: %s\n}, $OS_ERROR);
+            croak qq{Can't fork\n};
         }
-
-        POSIX::setsid()
-            or croak(sprintf qq{Can't start a new session: %s\n}, $OS_ERROR);
-
-        $self->reopen_std;
     }
 
     $self->drop_privileges;
@@ -92,10 +98,18 @@ sub drop_privileges {
     return $self;
 }
 
-sub send_kill {
+sub try_kill {
     my ($self, $signal) = @ARG;
 
-    return kill $signal // 'KILL', $self->pid;
+    my $pid = $self->pid;
+
+    if (defined $pid) {
+        return kill $signal // 'KILL', $pid;
+    }
+    else {
+        carp qq{No subprocess running\n};
+        return;
+    }
 }
 
 sub status {
