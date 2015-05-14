@@ -15,7 +15,6 @@ sub new {
     # Perform a trial run with no changes made (foreground if dry_run)
     my $dry_run = (exists $param{'dry_run'} and $param{'dry_run'}) ? 1 : 0;
 
-    # UID
     my $uid;
     if (exists $param{'uid'}) {
         $uid = $param{'uid'};
@@ -24,7 +23,6 @@ sub new {
             unless defined $uid and $uid =~ m{^\d+$}x;
     }
 
-    # GID
     my $gid;
     if (exists $param{'gid'}) {
         $gid = $param{'gid'};
@@ -33,10 +31,28 @@ sub new {
             unless defined $gid and $gid =~ m{^\d+$}x;
     }
 
+    my $cwd;
+    if (exists $param{'cwd'}) {
+        $cwd = $param{'cwd'};
+
+        croak qq{Bad argument "cwd"\n}
+            unless defined $cwd and length $cwd;
+    }
+
+    my $umask;
+    if (exists $param{'umask'}) {
+        $umask = $param{'umask'};
+
+        croak qq{Bad argument "umask"\n}
+            unless defined $umask and length $umask;
+    }
+
     return bless({}, $class)
         ->_set_dry_run($dry_run)
         ->_set_uid($uid)
         ->_set_gid($gid)
+        ->_set_cwd($cwd)
+        ->_set_umask($umask)
         ->_set_pid($PROCESS_ID)
         ->_set_detached(0);
 }
@@ -77,15 +93,12 @@ sub daemonize {
 sub reopen_std {
     my $self = shift;
 
-    open my $dev_null, '+>', '/dev/null'
-        or croak(sprintf qq{Can't open /dev/null: %s\n}, $OS_ERROR);
-
-    (close STDIN  and POSIX::dup2(0, $dev_null)
-        or croak(sprintf qq{Can't reopen STDIN: %s\n},  $OS_ERROR);
-    (close STDOUT and POSIX::dup2(1, $dev_null)
-        or croak(sprintf qq{Can't reopen STDOUT: %s\n}, $OS_ERROR);
-    (close STDERR and POSIX::dup2(2, $dev_null)
-        or croak(sprintf qq{Can't reopen STDERR: %s\n}, $OS_ERROR);
+    open(STDIN,  '</dev/null')
+        or croak(sprintf qq{Can't reopen STDIN: %s\n},   $OS_ERROR);
+    open(STDOUT, '>/dev/null')
+        or croak(sprintf qq{Can't reopen STDOUT: %s\n},  $OS_ERROR);
+    open(STDERR, '>/dev/null')
+        or croak(sprintf qq{Can't reopen STDERR: %s\n},  $OS_ERROR);
 
     return $self;
 }
@@ -93,8 +106,25 @@ sub reopen_std {
 sub drop_privileges {
     my $self = shift;
 
-    defined $self->uid and POSIX::setuid($self->uid);
-    defined $self->gid and POSIX::setgid($self->gid);
+    if (defined $self->uid) {
+        POSIX::setuid($self->uid)
+            or croak(sprintf qq{Can't set uid %s\n}, $self->uid);
+    }
+
+    if (defined $self->gid) {
+        POSIX::setgid($self->gid)
+            or croak(sprintf qq{Can't set gid %s\n}, $self->gid);
+    }
+
+    if (defined $self->umask) {
+        umask $self->umask
+            or croak(sprintf qq{Can't set umask %s: %s\n}, $self->umask, $OS_ERROR);
+    }
+
+    if (defined $self->cwd) {
+        chdir $self->cwd
+            or croak(sprintf qq{Can't chdir to %s: %s\n}, $self->cwd, $OS_ERROR);
+    }
 
     return $self;
 }
@@ -146,6 +176,16 @@ sub dry_run {
     return $self->{'dry_run'};
 }
 
+sub cwd {
+    my $self = shift;
+    return $self->{'cwd'};
+}
+
+sub umask {
+    my $self = shift;
+    return $self->{'umask'};
+}
+
 # private methods
 sub _set_pid {
     my ($self, $pid) = @ARG;
@@ -174,6 +214,18 @@ sub _set_detached {
 sub _set_dry_run {
     my ($self, $dry_run) = @ARG;
     $self->{'dry_run'} = $dry_run;
+    return $self;
+}
+
+sub _set_cwd {
+    my ($self, $cwd) = @ARG;
+    $self->{'cwd'} = $cwd;
+    return $self;
+}
+
+sub _set_umask {
+    my ($self, $umask) = @ARG;
+    $self->{'umask'} = $umask;
     return $self;
 }
 
