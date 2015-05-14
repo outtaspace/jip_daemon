@@ -47,12 +47,21 @@ sub new {
             unless defined $umask and length $umask;
     }
 
+    my $logger;
+    if (exists $param{'logger'}) {
+        $logger = $param{'logger'};
+
+        croak qq{Bad argument "logger"\n}
+            unless defined $logger and $logger->can('info');
+    }
+
     return bless({}, $class)
         ->_set_dry_run($dry_run)
         ->_set_uid($uid)
         ->_set_gid($gid)
         ->_set_cwd($cwd)
         ->_set_umask($umask)
+        ->_set_logger($logger)
         ->_set_pid($PROCESS_ID)
         ->_set_detached(0);
 }
@@ -64,6 +73,8 @@ sub daemonize {
 
     # Fork and kill parent
     if (not $self->dry_run) {
+        $self->logger->info('Daemonizing the process');
+
         my $pid = fork; # returns child pid to the parent and 0 to the child
 
         if (defined $pid) {
@@ -77,7 +88,8 @@ sub daemonize {
 
             # this branch is the parent
             else {
-                exit; # parent exiting
+                $self->logger->info(sprintf 'Spawned process pid=%d. Parent exiting', $pid);
+                exit;
             }
         }
         else {
@@ -107,23 +119,31 @@ sub drop_privileges {
     my $self = shift;
 
     if (defined $self->uid) {
+        my $uid = $self->uid;
+        $self->logger->info(sprintf 'Set uid=%d', $uid);
         POSIX::setuid($self->uid)
             or croak(sprintf qq{Can't set uid %s\n}, $self->uid);
     }
 
     if (defined $self->gid) {
-        POSIX::setgid($self->gid)
-            or croak(sprintf qq{Can't set gid %s\n}, $self->gid);
+        my $gid = $self->gid;
+        $self->logger->info(sprintf 'Set gid=%d', $gid);
+        POSIX::setgid($gid)
+            or croak(sprintf qq{Can't set gid %s\n}, $gid);
     }
 
     if (defined $self->umask) {
-        umask $self->umask
-            or croak(sprintf qq{Can't set umask %s: %s\n}, $self->umask, $OS_ERROR);
+        my $umask = $self->umask;
+        $self->logger->info(sprintf 'Set umask=%s', $umask);
+        umask $umask
+            or croak(sprintf qq{Can't set umask %s: %s\n}, $umask, $OS_ERROR);
     }
 
     if (defined $self->cwd) {
-        chdir $self->cwd
-            or croak(sprintf qq{Can't chdir to %s: %s\n}, $self->cwd, $OS_ERROR);
+        my $cwd = $self->cwd;
+        $self->logger->info(sprintf 'Set cwd=%s', $cwd);
+        chdir $cwd
+            or croak(sprintf qq{Can't chdir to %s: %s\n}, $cwd, $OS_ERROR);
     }
 
     return $self;
@@ -186,6 +206,11 @@ sub umask {
     return $self->{'umask'};
 }
 
+sub logger {
+    my $self = shift;
+    return $self->{'logger'};
+}
+
 # private methods
 sub _set_pid {
     my ($self, $pid) = @ARG;
@@ -226,6 +251,12 @@ sub _set_cwd {
 sub _set_umask {
     my ($self, $umask) = @ARG;
     $self->{'umask'} = $umask;
+    return $self;
+}
+
+sub _set_logger {
+    my ($self, $logger) = @ARG;
+    $self->{'logger'} = $logger;
     return $self;
 }
 
