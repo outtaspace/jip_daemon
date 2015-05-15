@@ -3,11 +3,23 @@ package JIP::Daemon;
 use 5.006;
 use strict;
 use warnings;
+use JIP::ClassField;
 use POSIX ();
 use Carp qw(carp croak);
 use English qw(-no_match_vars);
 
 our $VERSION = '0.01';
+
+map { has $_ => (get => '+', set => '-') } qw(
+    pid
+    uid
+    gid
+    cwd
+    umask
+    logger
+    dry_run
+    detached
+);
 
 sub new {
     my ($class, %param) = @ARG;
@@ -170,47 +182,6 @@ sub status {
     return $pid, kill(0, $pid) ? 1 : 0, $self->detached;
 }
 
-# Accessors
-sub pid {
-    my $self = shift;
-    return $self->{'pid'};
-}
-
-sub uid {
-    my $self = shift;
-    return $self->{'uid'};
-}
-
-sub gid {
-    my $self = shift;
-    return $self->{'gid'};
-}
-
-sub detached {
-    my $self = shift;
-    return $self->{'detached'};
-}
-
-sub dry_run {
-    my $self = shift;
-    return $self->{'dry_run'};
-}
-
-sub cwd {
-    my $self = shift;
-    return $self->{'cwd'};
-}
-
-sub umask {
-    my $self = shift;
-    return $self->{'umask'};
-}
-
-sub logger {
-    my $self = shift;
-    return $self->{'logger'};
-}
-
 # private methods
 sub _log {
     my ($self, @params) = @ARG;
@@ -231,54 +202,6 @@ sub _log {
         $logger->info($msg) if defined $msg;
     }
 
-    return $self;
-}
-
-sub _set_pid {
-    my ($self, $pid) = @ARG;
-    $self->{'pid'} = $pid;
-    return $self;
-}
-
-sub _set_uid {
-    my ($self, $uid) = @ARG;
-    $self->{'uid'} = $uid;
-    return $self;
-}
-
-sub _set_gid {
-    my ($self, $gid) = @ARG;
-    $self->{'gid'} = $gid;
-    return $self;
-}
-
-sub _set_detached {
-    my ($self, $detached) = @ARG;
-    $self->{'detached'} = $detached;
-    return $self;
-}
-
-sub _set_dry_run {
-    my ($self, $dry_run) = @ARG;
-    $self->{'dry_run'} = $dry_run;
-    return $self;
-}
-
-sub _set_cwd {
-    my ($self, $cwd) = @ARG;
-    $self->{'cwd'} = $cwd;
-    return $self;
-}
-
-sub _set_umask {
-    my ($self, $umask) = @ARG;
-    $self->{'umask'} = $umask;
-    return $self;
-}
-
-sub _set_logger {
-    my ($self, $logger) = @ARG;
-    $self->{'logger'} = $logger;
     return $self;
 }
 
