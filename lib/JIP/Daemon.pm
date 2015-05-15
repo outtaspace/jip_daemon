@@ -73,7 +73,7 @@ sub daemonize {
 
     # Fork and kill parent
     if (not $self->dry_run) {
-        $self->logger->info('Daemonizing the process');
+        $self->_log('Daemonizing the process');
 
         my $pid = fork; # returns child pid to the parent and 0 to the child
 
@@ -88,7 +88,7 @@ sub daemonize {
 
             # this branch is the parent
             else {
-                $self->logger->info(sprintf 'Spawned process pid=%d. Parent exiting', $pid);
+                $self->_log('Spawned process pid=%d. Parent exiting', $pid);
                 exit;
             }
         }
@@ -120,28 +120,28 @@ sub drop_privileges {
 
     if (defined $self->uid) {
         my $uid = $self->uid;
-        $self->logger->info(sprintf 'Set uid=%d', $uid);
+        $self->_log('Set uid=%d', $uid);
         POSIX::setuid($self->uid)
             or croak(sprintf qq{Can't set uid %s\n}, $self->uid);
     }
 
     if (defined $self->gid) {
         my $gid = $self->gid;
-        $self->logger->info(sprintf 'Set gid=%d', $gid);
+        $self->_log('Set gid=%d', $gid);
         POSIX::setgid($gid)
             or croak(sprintf qq{Can't set gid %s\n}, $gid);
     }
 
     if (defined $self->umask) {
         my $umask = $self->umask;
-        $self->logger->info(sprintf 'Set umask=%s', $umask);
+        $self->_log('Set umask=%s', $umask);
         umask $umask
             or croak(sprintf qq{Can't set umask %s: %s\n}, $umask, $OS_ERROR);
     }
 
     if (defined $self->cwd) {
         my $cwd = $self->cwd;
-        $self->logger->info(sprintf 'Set cwd=%s', $cwd);
+        $self->_log('Set cwd=%s', $cwd);
         chdir $cwd
             or croak(sprintf qq{Can't chdir to %s: %s\n}, $cwd, $OS_ERROR);
     }
@@ -212,6 +212,28 @@ sub logger {
 }
 
 # private methods
+sub _log {
+    my ($self, @params) = @ARG;
+
+    my $logger = $self->logger;
+
+    if (defined $logger) {
+        my $msg;
+
+        if (@params == 1) {
+            $msg = shift @params;
+        }
+        elsif (@params) {
+            my $format = shift @params;
+            $msg = sprintf $format, @params;
+        }
+
+        $logger->info($msg) if defined $msg;
+    }
+
+    return $self;
+}
+
 sub _set_pid {
     my ($self, $pid) = @ARG;
     $self->{'pid'} = $pid;
