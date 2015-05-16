@@ -3,11 +3,23 @@ package JIP::Daemon;
 use 5.006;
 use strict;
 use warnings;
+use JIP::ClassField;
 use POSIX ();
 use Carp qw(carp croak);
 use English qw(-no_match_vars);
 
 our $VERSION = '0.01';
+
+map { has $_ => (get => '+', set => '-') } qw(
+    pid
+    uid
+    gid
+    cwd
+    umask
+    logger
+    dry_run
+    detached
+);
 
 sub new {
     my ($class, %param) = @ARG;
@@ -15,7 +27,6 @@ sub new {
     # Perform a trial run with no changes made (foreground if dry_run)
     my $dry_run = (exists $param{'dry_run'} and $param{'dry_run'}) ? 1 : 0;
 
-    # UID
     my $uid;
     if (exists $param{'uid'}) {
         $uid = $param{'uid'};
@@ -24,7 +35,6 @@ sub new {
             unless defined $uid and $uid =~ m{^\d+$}x;
     }
 
-    # GID
     my $gid;
     if (exists $param{'gid'}) {
         $gid = $param{'gid'};
@@ -33,10 +43,37 @@ sub new {
             unless defined $gid and $gid =~ m{^\d+$}x;
     }
 
+    my $cwd;
+    if (exists $param{'cwd'}) {
+        $cwd = $param{'cwd'};
+
+        croak qq{Bad argument "cwd"\n}
+            unless defined $cwd and length $cwd;
+    }
+
+    my $umask;
+    if (exists $param{'umask'}) {
+        $umask = $param{'umask'};
+
+        croak qq{Bad argument "umask"\n}
+            unless defined $umask and length $umask;
+    }
+
+    my $logger;
+    if (exists $param{'logger'}) {
+        $logger = $param{'logger'};
+
+        croak qq{Bad argument "logger"\n}
+            unless defined $logger and $logger->can('info');
+    }
+
     return bless({}, $class)
         ->_set_dry_run($dry_run)
         ->_set_uid($uid)
         ->_set_gid($gid)
+        ->_set_cwd($cwd)
+        ->_set_umask($umask)
+        ->_set_logger($logger)
         ->_set_pid($PROCESS_ID)
         ->_set_detached(0);
 }
@@ -48,6 +85,8 @@ sub daemonize {
 
     # Fork and kill parent
     if (not $self->dry_run) {
+        $self->_log('Daemonizing the process');
+
         my $pid = fork; # returns child pid to the parent and 0 to the child
 
         if (defined $pid) {
@@ -61,7 +100,8 @@ sub daemonize {
 
             # this branch is the parent
             else {
-                exit; # parent exiting
+                $self->_log('Spawned process pid=%d. Parent exiting', $pid);
+                exit;
             }
         }
         else {
@@ -77,15 +117,12 @@ sub daemonize {
 sub reopen_std {
     my $self = shift;
 
-    open my $dev_null, '+>', '/dev/null'
-        or croak(sprintf qq{Can't open /dev/null: %s\n}, $OS_ERROR);
-
-    (close STDIN  and POSIX::dup2(0, $dev_null))
-        or croak(sprintf qq{Can't reopen STDIN: %s\n},  $OS_ERROR);
-    (close STDOUT and POSIX::dup2(1, $dev_null))
-        or croak(sprintf qq{Can't reopen STDOUT: %s\n}, $OS_ERROR);
-    (close STDERR and POSIX::dup2(2, $dev_null))
-        or croak(sprintf qq{Can't reopen STDERR: %s\n}, $OS_ERROR);
+    open(STDIN,  '</dev/null')
+        or croak(sprintf qq{Can't reopen STDIN: %s\n},   $OS_ERROR);
+    open(STDOUT, '>/dev/null')
+        or croak(sprintf qq{Can't reopen STDOUT: %s\n},  $OS_ERROR);
+    open(STDERR, '>/dev/null')
+        or croak(sprintf qq{Can't reopen STDERR: %s\n},  $OS_ERROR);
 
     return $self;
 }
@@ -93,8 +130,33 @@ sub reopen_std {
 sub drop_privileges {
     my $self = shift;
 
-    defined $self->uid and POSIX::setuid($self->uid);
-    defined $self->gid and POSIX::setgid($self->gid);
+    if (defined $self->uid) {
+        my $uid = $self->uid;
+        $self->_log('Set uid=%d', $uid);
+        POSIX::setuid($self->uid)
+            or croak(sprintf qq{Can't set uid %s\n}, $self->uid);
+    }
+
+    if (defined $self->gid) {
+        my $gid = $self->gid;
+        $self->_log('Set gid=%d', $gid);
+        POSIX::setgid($gid)
+            or croak(sprintf qq{Can't set gid %s\n}, $gid);
+    }
+
+    if (defined $self->umask) {
+        my $umask = $self->umask;
+        $self->_log('Set umask=%s', $umask);
+        umask $umask
+            or croak(sprintf qq{Can't set umask %s: %s\n}, $umask, $OS_ERROR);
+    }
+
+    if (defined $self->cwd) {
+        my $cwd = $self->cwd;
+        $self->_log('Set cwd=%s', $cwd);
+        chdir $cwd
+            or croak(sprintf qq{Can't chdir to %s: %s\n}, $cwd, $OS_ERROR);
+    }
 
     return $self;
 }
@@ -120,60 +182,26 @@ sub status {
     return $pid, kill(0, $pid) ? 1 : 0, $self->detached;
 }
 
-# Accessors
-sub pid {
-    my $self = shift;
-    return $self->{'pid'};
-}
-
-sub uid {
-    my $self = shift;
-    return $self->{'uid'};
-}
-
-sub gid {
-    my $self = shift;
-    return $self->{'gid'};
-}
-
-sub detached {
-    my $self = shift;
-    return $self->{'detached'};
-}
-
-sub dry_run {
-    my $self = shift;
-    return $self->{'dry_run'};
-}
-
 # private methods
-sub _set_pid {
-    my ($self, $pid) = @ARG;
-    $self->{'pid'} = $pid;
-    return $self;
-}
+sub _log {
+    my ($self, @params) = @ARG;
 
-sub _set_uid {
-    my ($self, $uid) = @ARG;
-    $self->{'uid'} = $uid;
-    return $self;
-}
+    my $logger = $self->logger;
 
-sub _set_gid {
-    my ($self, $gid) = @ARG;
-    $self->{'gid'} = $gid;
-    return $self;
-}
+    if (defined $logger) {
+        my $msg;
 
-sub _set_detached {
-    my ($self, $detached) = @ARG;
-    $self->{'detached'} = $detached;
-    return $self;
-}
+        if (@params == 1) {
+            $msg = shift @params;
+        }
+        elsif (@params) {
+            my $format = shift @params;
+            $msg = sprintf $format, @params;
+        }
 
-sub _set_dry_run {
-    my ($self, $dry_run) = @ARG;
-    $self->{'dry_run'} = $dry_run;
+        $logger->info($msg) if defined $msg;
+    }
+
     return $self;
 }
 
