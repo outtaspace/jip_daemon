@@ -10,6 +10,26 @@ use English qw(-no_match_vars);
 
 our $VERSION = '0.01';
 
+my $default_log_callback = sub {
+    my ($self, @params) = @ARG;
+
+    my $logger = $self->logger;
+
+    if (defined $logger) {
+        my $msg;
+
+        if (@params == 1) {
+            $msg = shift @params;
+        }
+        elsif (@params) {
+            my $format = shift @params;
+            $msg = sprintf $format, @params;
+        }
+
+        $logger->info($msg) if defined $msg;
+    }
+};
+
 map { has $_ => (get => '+', set => '-') } qw(
     pid
     uid
@@ -19,6 +39,7 @@ map { has $_ => (get => '+', set => '-') } qw(
     logger
     dry_run
     detached
+    log_callback
 );
 
 sub new {
@@ -67,6 +88,17 @@ sub new {
             unless defined $logger and $logger->can('info');
     }
 
+    my $log_callback;
+    if (exists $param{'log_callback'}) {
+        $log_callback = $param{'log_callback'};
+
+        croak qq{Bad argument "log_callback"}
+            unless defined $log_callback and ref($log_callback) eq 'CODE';
+    }
+    else {
+        $log_callback = $default_log_callback;
+    }
+
     return bless({}, $class)
         ->_set_dry_run($dry_run)
         ->_set_uid($uid)
@@ -74,6 +106,7 @@ sub new {
         ->_set_cwd($cwd)
         ->_set_umask($umask)
         ->_set_logger($logger)
+        ->_set_log_callback($log_callback)
         ->_set_pid($PROCESS_ID)
         ->_set_detached(0);
 }
@@ -184,23 +217,9 @@ sub status {
 
 # private methods
 sub _log {
-    my ($self, @params) = @ARG;
+    my $self = shift;
 
-    my $logger = $self->logger;
-
-    if (defined $logger) {
-        my $msg;
-
-        if (@params == 1) {
-            $msg = shift @params;
-        }
-        elsif (@params) {
-            my $format = shift @params;
-            $msg = sprintf $format, @params;
-        }
-
-        $logger->info($msg) if defined $msg;
-    }
+    $self->log_callback->($self, @ARG);
 
     return $self;
 }
