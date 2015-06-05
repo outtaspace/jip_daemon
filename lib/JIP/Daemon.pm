@@ -122,23 +122,20 @@ sub daemonize {
 
         my $pid = fork; # returns child pid to the parent and 0 to the child
 
-        if (defined $pid) {
-            # fork returned 0, so this branch is the child
-            if ($pid == 0) {
-                POSIX::setsid()
-                    or croak(sprintf q{Can't start a new session: %s}, $OS_ERROR);
+        croak q{Can't fork} if not defined $pid;
 
-                $self->reopen_std;
-            }
+        # fork returned 0, so this branch is the child
+        if ($pid == 0) {
+            POSIX::setsid()
+                or croak(sprintf q{Can't start a new session: %s}, $OS_ERROR);
 
-            # this branch is the parent
-            else {
-                $self->_log('Spawned process pid=%d. Parent exiting', $pid);
-                exit;
-            }
+            $self->reopen_std;
         }
+
+        # this branch is the parent
         else {
-            croak q{Can't fork};
+            $self->_log('Spawned process pid=%d. Parent exiting', $pid);
+            exit;
         }
     }
 
