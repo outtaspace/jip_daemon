@@ -50,7 +50,7 @@ sub new {
     if (exists $param{'uid'}) {
         $uid = $param{'uid'};
 
-        croak qq{Bad argument "uid"\n}
+        croak q{Bad argument "uid"}
             unless defined $uid and $uid =~ m{^\d+$}x;
     }
 
@@ -58,7 +58,7 @@ sub new {
     if (exists $param{'gid'}) {
         $gid = $param{'gid'};
 
-        croak qq{Bad argument "gid"\n}
+        croak q{Bad argument "gid"}
             unless defined $gid and $gid =~ m{^\d+$}x;
     }
 
@@ -66,7 +66,7 @@ sub new {
     if (exists $param{'cwd'}) {
         $cwd = $param{'cwd'};
 
-        croak qq{Bad argument "cwd"\n}
+        croak q{Bad argument "cwd"}
             unless defined $cwd and length $cwd;
     }
 
@@ -74,7 +74,7 @@ sub new {
     if (exists $param{'umask'}) {
         $umask = $param{'umask'};
 
-        croak qq{Bad argument "umask"\n}
+        croak q{Bad argument "umask"}
             unless defined $umask and length $umask;
     }
 
@@ -82,7 +82,7 @@ sub new {
     if (exists $param{'logger'}) {
         $logger = $param{'logger'};
 
-        croak qq{Bad argument "logger"\n}
+        croak q{Bad argument "logger"}
             unless defined $logger and $logger->can('info');
     }
 
@@ -90,7 +90,7 @@ sub new {
     if (exists $param{'log_callback'}) {
         $log_callback = $param{'log_callback'};
 
-        croak qq{Bad argument "log_callback"}
+        croak q{Bad argument "log_callback"}
             unless defined $log_callback and ref($log_callback) eq 'CODE';
     }
     else {
@@ -120,23 +120,20 @@ sub daemonize {
 
         my $pid = fork; # returns child pid to the parent and 0 to the child
 
-        if (defined $pid) {
-            # fork returned 0, so this branch is the child
-            if ($pid == 0) {
-                POSIX::setsid()
-                    or croak(sprintf qq{Can't start a new session: %s\n}, $OS_ERROR);
+        croak q{Can't fork} if not defined $pid;
 
-                $self->reopen_std;
-            }
+        # fork returned 0, so this branch is the child
+        if ($pid == 0) {
+            POSIX::setsid()
+                or croak(sprintf q{Can't start a new session: %s}, $OS_ERROR);
 
-            # this branch is the parent
-            else {
-                $self->_log('Spawned process pid=%d. Parent exiting', $pid);
-                exit;
-            }
+            $self->reopen_std;
         }
+
+        # this branch is the parent
         else {
-            croak qq{Can't fork\n};
+            $self->_log('Spawned process pid=%d. Parent exiting', $pid);
+            exit;
         }
     }
 
@@ -149,11 +146,11 @@ sub reopen_std {
     my $self = shift;
 
     open(STDIN,  '</dev/null')
-        or croak(sprintf qq{Can't reopen STDIN: %s\n},   $OS_ERROR);
+        or croak(sprintf q{Can't reopen STDIN: %s},   $OS_ERROR);
     open(STDOUT, '>/dev/null')
-        or croak(sprintf qq{Can't reopen STDOUT: %s\n},  $OS_ERROR);
+        or croak(sprintf q{Can't reopen STDOUT: %s},  $OS_ERROR);
     open(STDERR, '>/dev/null')
-        or croak(sprintf qq{Can't reopen STDERR: %s\n},  $OS_ERROR);
+        or croak(sprintf q{Can't reopen STDERR: %s},  $OS_ERROR);
 
     return $self;
 }
@@ -165,28 +162,28 @@ sub drop_privileges {
         my $uid = $self->uid;
         $self->_log('Set uid=%d', $uid);
         POSIX::setuid($self->uid)
-            or croak(sprintf qq{Can't set uid %s\n}, $self->uid);
+            or croak(sprintf q{Can't set uid %s}, $self->uid);
     }
 
     if (defined $self->gid) {
         my $gid = $self->gid;
         $self->_log('Set gid=%d', $gid);
         POSIX::setgid($gid)
-            or croak(sprintf qq{Can't set gid %s\n}, $gid);
+            or croak(sprintf q{Can't set gid %s}, $gid);
     }
 
     if (defined $self->umask) {
         my $umask = $self->umask;
         $self->_log('Set umask=%s', $umask);
         umask $umask
-            or croak(sprintf qq{Can't set umask %s: %s\n}, $umask, $OS_ERROR);
+            or croak(sprintf q{Can't set umask %s: %s}, $umask, $OS_ERROR);
     }
 
     if (defined $self->cwd) {
         my $cwd = $self->cwd;
         $self->_log('Set cwd=%s', $cwd);
         chdir $cwd
-            or croak(sprintf qq{Can't chdir to %s: %s\n}, $cwd, $OS_ERROR);
+            or croak(sprintf q{Can't chdir to %s: %s}, $cwd, $OS_ERROR);
     }
 
     return $self;
@@ -201,7 +198,7 @@ sub try_kill {
         return kill(defined $signal ? $signal : 'KILL', $pid);
     }
     else {
-        carp qq{No subprocess running\n};
+        carp q{No subprocess running};
         return;
     }
 }
