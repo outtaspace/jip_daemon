@@ -13,9 +13,7 @@ our $VERSION = '0.01';
 my $default_log_callback = sub {
     my ($self, @params) = @ARG;
 
-    my $logger = $self->logger;
-
-    if (defined $logger) {
+    if (my $logger = $self->logger) {
         my $msg;
 
         if (@params == 1) {
