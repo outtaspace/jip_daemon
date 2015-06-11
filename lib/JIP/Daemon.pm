@@ -13,7 +13,7 @@ our $VERSION = '0.01';
 my $default_log_callback = sub {
     my ($self, @params) = @ARG;
 
-    if (my $logger = $self->logger) {
+    if (defined(my $logger = $self->logger)) {
         my $msg;
 
         if (@params == 1) {
@@ -158,31 +158,27 @@ sub reopen_std {
 sub drop_privileges {
     my $self = shift;
 
-    if (defined $self->uid) {
-        my $uid = $self->uid;
+    if (defined(my $uid = $self->uid)) {
         $self->_log('Set uid=%d', $uid);
         POSIX::setuid($self->uid)
             or croak(sprintf q{Can't set uid %s}, $self->uid);
     }
 
-    if (defined $self->gid) {
-        my $gid = $self->gid;
+    if (defined(my $gid = $self->gid)) {
         $self->_log('Set gid=%d', $gid);
         POSIX::setgid($gid)
             or croak(sprintf q{Can't set gid %s}, $gid);
     }
 
-    if (defined $self->umask) {
-        my $umask = $self->umask;
+    if (defined(my $umask = $self->umask)) {
         $self->_log('Set umask=%s', $umask);
-        umask $umask
+        POSIX::umask($umask)
             or croak(sprintf q{Can't set umask %s: %s}, $umask, $OS_ERROR);
     }
 
-    if (defined $self->cwd) {
-        my $cwd = $self->cwd;
+    if (defined(my $cwd = $self->cwd)) {
         $self->_log('Set cwd=%s', $cwd);
-        chdir $cwd
+        POSIX::chdir($cwd)
             or croak(sprintf q{Can't chdir to %s: %s}, $cwd, $OS_ERROR);
     }
 
@@ -192,9 +188,7 @@ sub drop_privileges {
 sub try_kill {
     my ($self, $signal) = @ARG;
 
-    my $pid = $self->pid;
-
-    if (defined $pid) {
+    if (defined(my $pid = $self->pid)) {
         return kill(defined $signal ? $signal : 'KILL', $pid);
     }
     else {
