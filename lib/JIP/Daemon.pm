@@ -200,7 +200,7 @@ sub try_kill {
     my $pid = $self->pid;
 
     if (defined $pid) {
-        return kill $signal // 'KILL', $pid;
+        return kill(defined $signal ? $signal : 'KILL', $pid);
     }
     else {
         carp qq{No subprocess running\n};
