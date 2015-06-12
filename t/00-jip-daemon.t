@@ -117,7 +117,6 @@ subtest 'logging' => sub {
     ));
 
     is ref($obj->_log()), 'JIP::Daemon';
-
     $obj->_log('simple string');
     $obj->_log('format %s', 'value');
 
@@ -266,7 +265,6 @@ subtest 'daemonize. dry_run' => sub {
     );
 
     my $obj = JIP::Daemon->new(dry_run => 1)->daemonize;
-
     is_deeply [$obj->detached, $obj->pid], [1, $PROCESS_ID];
 
     # daemonize on detached process changes nothing
@@ -302,7 +300,6 @@ subtest 'daemonize. parent' => sub {
     );
 
     my $obj = JIP::Daemon->new->daemonize;
-
     is_deeply [$obj->detached, $obj->pid], [1, $pid];
 
     # daemonize on detached process changes nothing
@@ -348,7 +345,6 @@ subtest 'daemonize. child' => sub {
     );
 
     my $obj = JIP::Daemon->new->daemonize;
-
     is_deeply [$obj->detached, $obj->pid], [1, $pid];
 
     # daemonize on detached process changes nothing
@@ -368,19 +364,17 @@ subtest 'daemonize. exceptions' => sub {
             push @{ $logs }, $msg;
         }),
     );
-
     my $control_posix = qtakeover 'POSIX' => (
         fork => sub {
             pass 'fork() method is invoked';
             return undef;
         },
     );
-
     eval { JIP::Daemon->new->daemonize } or do {
         like $EVAL_ERROR, qr{^Can't \s fork}x;
     };
-
     $control_posix->restore('fork');
+
     $control_posix->override(
         fork => sub {
             pass 'fork() method is invoked';
@@ -391,11 +385,9 @@ subtest 'daemonize. exceptions' => sub {
             return undef;
         },
     );
-
     eval { JIP::Daemon->new->daemonize } or do {
         like $EVAL_ERROR, qr{^Can't \s start \s a \s new \s session:}x;
     };
-
     is_deeply $logs, ['Daemonizing the process', 'Daemonizing the process'];
 };
 
