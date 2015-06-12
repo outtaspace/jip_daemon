@@ -4,8 +4,8 @@ use 5.006;
 use strict;
 use warnings FATAL => 'all';
 use Test::More;
-use Mock::Quick qw(qtakeover qobj qmeth);
 use English qw(-no_match_vars);
+use Mock::Quick qw(qtakeover qobj qmeth);
 use Capture::Tiny qw(capture capture_stderr);
 
 plan tests => 12;
@@ -205,21 +205,21 @@ subtest 'exceptions in drop_privileges()' => sub {
     );
 
     eval { JIP::Daemon->new(uid => 1)->drop_privileges } or do {
-        like $EVAL_ERROR, qr{Can't \s set \s uid \s "1":}x;
+        like $EVAL_ERROR, qr{^Can't \s set \s uid \s "1":}x;
     };
     eval { JIP::Daemon->new(gid => 2)->drop_privileges } or do {
-        like $EVAL_ERROR, qr{Can't \s set \s gid \s "2":}x;
+        like $EVAL_ERROR, qr{^Can't \s set \s gid \s "2":}x;
     };
     eval { JIP::Daemon->new(umask => 3)->drop_privileges } or do {
-        like $EVAL_ERROR, qr{Can't \s set \s umask \s "3":}x;
+        like $EVAL_ERROR, qr{^Can't \s set \s umask \s "3":}x;
     };
     eval { JIP::Daemon->new(cwd => q{/})->drop_privileges } or do {
-        like $EVAL_ERROR, qr{Can't \s chdir \s to \s "/":}x;
+        like $EVAL_ERROR, qr{^Can't \s chdir \s to \s "/":}x;
     };
 };
 
 subtest 'reopen_std()' => sub {
-    plan tests => 3;
+    plan tests => 2;
 
     my $obj;
 
@@ -230,8 +230,7 @@ subtest 'reopen_std()' => sub {
     };
 
     is ref($obj), 'JIP::Daemon';
-    is $std_out, q{};
-    is $std_err, q{};
+    is_deeply[$std_out, $std_err], [q{}, q{}];
 };
 
 subtest 'daemonize. dry_run' => sub {
