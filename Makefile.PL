@@ -16,6 +16,7 @@ WriteMakefile(
     },
     BUILD_REQUIRES => {
         'Test::More'    => 0,
+        'Carp'          => 0,
         'English'       => 0,
         'Mock::Quick'   => 0,
         'Capture::Tiny' => 0,

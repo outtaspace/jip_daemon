@@ -4,6 +4,7 @@ use 5.006;
 use strict;
 use warnings FATAL => 'all';
 use Test::More;
+use Carp qw(croak);
 use English qw(-no_match_vars);
 use Mock::Quick qw(qtakeover qobj qmeth);
 use Capture::Tiny qw(capture capture_stderr);
@@ -150,7 +151,9 @@ subtest 'try_kill()' => sub {
     $control->restore('kill');
 
     my $std_err = capture_stderr {
-        is(JIP::Daemon->new->_set_pid(undef)->try_kill(0), undef);
+        my $control_daemon = qtakeover 'JIP::Daemon' => (pid => sub { undef });
+
+        is(JIP::Daemon->new->try_kill(0), undef);
     };
     like $std_err, qr{^No \s subprocess \s running}x;
 };
@@ -188,7 +191,7 @@ subtest 'drop_privileges()' => sub {
     );
 
     {
-        my $uid = 100500;
+        my $uid = '65534';
         is(
             ref JIP::Daemon->new(uid => $uid, log_callback => $cb)->drop_privileges,
             'JIP::Daemon',
@@ -197,7 +200,7 @@ subtest 'drop_privileges()' => sub {
         $empty_logs->();
     }
     {
-        my $gid = 100500;
+        my $gid = '65534';
         JIP::Daemon->new(gid => $gid, log_callback => $cb)->drop_privileges;
         is_deeply $logs, ['Set gid=%d', $gid];
         $empty_logs->();
@@ -247,8 +250,10 @@ subtest 'reopen_std()' => sub {
 
     my ($std_out, $std_err) = capture {
         $obj = JIP::Daemon->new(uid => 1)->reopen_std;
-        print STDOUT 42;
-        print STDERR 42;
+        print {*STDOUT} q{std_out msg}
+            or croak(q{Can't print to STDOUT: }. $OS_ERROR);
+        print {*STDERR} q{std_err msg}
+            or croak(q{Can't print to STDERR: }. $OS_ERROR);
     };
 
     is ref($obj), 'JIP::Daemon';
@@ -275,7 +280,7 @@ subtest 'daemonize. dry_run' => sub {
 subtest 'daemonize. parent' => sub {
     plan tests => 7;
 
-    my $pid  = 100500;
+    my $pid  = '500';
     my $logs = [];
 
     my $control_posix = qtakeover 'POSIX' => (
@@ -307,14 +312,14 @@ subtest 'daemonize. parent' => sub {
     is_deeply [$obj->detached, $obj->pid], [1, $pid];
     is_deeply $logs, [
         'Daemonizing the process',
-        'Spawned process pid=100500. Parent exiting',
+        'Spawned process pid=500. Parent exiting',
     ];
 };
 
 subtest 'daemonize. child' => sub {
     plan tests => 8;
 
-    my $pid  = 500100;
+    my $pid  = '500';
     my $logs = [];
 
     my $control_posix = qtakeover 'POSIX' => (
@@ -367,7 +372,7 @@ subtest 'daemonize. exceptions' => sub {
     my $control_posix = qtakeover 'POSIX' => (
         fork => sub {
             pass 'fork() method is invoked';
-            return undef;
+            return;
         },
     );
     eval { JIP::Daemon->new->daemonize } or do {
@@ -382,7 +387,7 @@ subtest 'daemonize. exceptions' => sub {
         },
         setsid => sub {
             pass 'setsid() method is invoked';
-            return undef;
+            return;
         },
     );
     eval { JIP::Daemon->new->daemonize } or do {

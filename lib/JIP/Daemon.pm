@@ -28,7 +28,7 @@ my $default_log_callback = sub {
     }
 };
 
-map { has $_ => (get => '+', set => '-') } qw(
+has $_ => (get => q{+}, set => q{-}) for qw(
     pid
     uid
     gid
@@ -150,11 +150,11 @@ sub daemonize {
 sub reopen_std {
     my $self = shift;
 
-    open(STDIN,  '</dev/null')
+    open STDIN,  '</dev/null'
         or croak(sprintf q{Can't reopen STDIN: %s},   $OS_ERROR);
-    open(STDOUT, '>/dev/null')
+    open STDOUT, '>/dev/null'
         or croak(sprintf q{Can't reopen STDOUT: %s},  $OS_ERROR);
-    open(STDERR, '>/dev/null')
+    open STDERR, '>/dev/null'
         or croak(sprintf q{Can't reopen STDERR: %s},  $OS_ERROR);
 
     return $self;
