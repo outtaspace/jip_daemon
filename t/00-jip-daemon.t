@@ -130,19 +130,42 @@ subtest 'logging' => sub {
 };
 
 subtest 'try_kill()' => sub {
-    plan tests => 3;
+    plan tests => 6;
 
-    is(JIP::Daemon->new->try_kill(0), kill(0, $PROCESS_ID));
+    my $control = qtakeover 'POSIX' => (
+        kill => sub {
+            my $signal = shift;
+            is $signal, 'USR1';
+            return 1;
+        },
+    );
+    is(JIP::Daemon->new->try_kill('USR1'), 1);
+    $control->restore('kill');
+
+    $control->override(kill => sub {
+        my $signal = shift;
+        is $signal, 'KILL';
+        return 1;
+    });
+    is(JIP::Daemon->new->try_kill, 1);
+    $control->restore('kill');
 
     my $std_err = capture_stderr {
         is(JIP::Daemon->new->_set_pid(undef)->try_kill(0), undef);
     };
-
     like $std_err, qr{^No \s subprocess \s running}x;
 };
 
 subtest 'status()' => sub {
-    plan tests => 1;
+    plan tests => 2;
+
+    my $control = qtakeover 'POSIX' => (
+        kill => sub {
+            my $signal = shift;
+            is $signal, 0;
+            return 1;
+        },
+    );
 
     is_deeply [JIP::Daemon->new->status], [$PROCESS_ID, 1, 0];
 };

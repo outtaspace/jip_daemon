@@ -194,7 +194,7 @@ sub try_kill {
     my ($self, $signal) = @ARG;
 
     if (defined(my $pid = $self->pid)) {
-        return kill(defined $signal ? $signal : 'KILL', $pid);
+        return POSIX::kill(defined $signal ? $signal : 'KILL', $pid);
     }
     else {
         carp q{No subprocess running};
@@ -206,7 +206,7 @@ sub status {
     my $self = shift;
     my $pid  = $self->pid;
 
-    return $pid, kill(0, $pid) ? 1 : 0, $self->detached;
+    return $pid, POSIX::kill(0, $pid) ? 1 : 0, $self->detached;
 }
 
 # private methods
