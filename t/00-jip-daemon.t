@@ -134,8 +134,8 @@ subtest 'try_kill()' => sub {
 
     my $control = qtakeover 'POSIX' => (
         kill => sub {
-            my $signal = shift;
-            is $signal, 'USR1';
+            my ($signal, $pid) = @ARG;
+            is_deeply [$signal, $pid], ['USR1', $PROCESS_ID];
             return 1;
         },
     );
@@ -143,8 +143,8 @@ subtest 'try_kill()' => sub {
     $control->restore('kill');
 
     $control->override(kill => sub {
-        my $signal = shift;
-        is $signal, 'KILL';
+        my ($signal, $pid) = @ARG;
+        is_deeply [$signal, $pid], ['KILL', $PROCESS_ID];
         return 1;
     });
     is(JIP::Daemon->new->try_kill, 1);
@@ -161,8 +161,8 @@ subtest 'status()' => sub {
 
     my $control = qtakeover 'POSIX' => (
         kill => sub {
-            my $signal = shift;
-            is $signal, 0;
+            my ($signal, $pid) = @ARG;
+            is_deeply [$signal, $pid], [0, $PROCESS_ID];
             return 1;
         },
     );
