@@ -118,7 +118,7 @@ sub daemonize {
     if (not $self->dry_run) {
         $self->_log('Daemonizing the process');
 
-        my $pid = fork; # returns child pid to the parent and 0 to the child
+        my $pid = POSIX::fork(); # returns child pid to the parent and 0 to the child
 
         croak q{Can't fork} if not defined $pid;
 
@@ -127,19 +127,24 @@ sub daemonize {
             POSIX::setsid()
                 or croak(sprintf q{Can't start a new session: %s}, $OS_ERROR);
 
+            $self->_set_pid(POSIX::getpid());
             $self->reopen_std;
         }
 
         # this branch is the parent
         else {
             $self->_log('Spawned process pid=%d. Parent exiting', $pid);
-            exit;
+            $self->_set_pid($pid);
+            POSIX::exit(0);
         }
+    }
+    else {
+        $self->_set_pid($PROCESS_ID);
     }
 
     $self->drop_privileges;
 
-    return $self->_set_pid($PROCESS_ID)->_set_detached(1);
+    return $self->_set_detached(1);
 }
 
 sub reopen_std {

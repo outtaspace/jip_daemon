@@ -10,7 +10,7 @@ use Capture::Tiny qw(capture capture_stderr);
 
 use lib::abs qw(../lib);
 
-plan tests => 9;
+plan tests => 12;
 
 subtest 'Require some module' => sub {
     plan tests => 2;
@@ -131,21 +131,6 @@ subtest 'logging' => sub {
     is_deeply $logs, ['simple string', 'format value'];
 };
 
-subtest 'dry_run' => sub {
-    plan tests => 4;
-
-    my $obj = JIP::Daemon->new(dry_run => 1)->daemonize;
-
-    is $obj->detached, 1;
-    is $obj->pid,      $PROCESS_ID;
-
-    # daemonize on detached process changes nothing
-    $obj->daemonize;
-
-    is $obj->detached, 1;
-    is $obj->pid,      $PROCESS_ID;
-};
-
 subtest 'try_kill()' => sub {
     plan tests => 3;
 
@@ -249,5 +234,148 @@ subtest 'reopen_std()' => sub {
     is ref($obj), 'JIP::Daemon';
     is $std_out, q{};
     is $std_err, q{};
+};
+
+subtest 'daemonize. dry_run' => sub {
+    plan tests => 3;
+
+    my $control_daemon = qtakeover 'JIP::Daemon' => (
+        drop_privileges => sub {
+            pass 'drop_privileges() method is invoked';
+        },
+    );
+
+    my $obj = JIP::Daemon->new(dry_run => 1)->daemonize;
+
+    is_deeply [$obj->detached, $obj->pid], [1, $PROCESS_ID];
+
+    # daemonize on detached process changes nothing
+    $obj->daemonize;
+    is_deeply [$obj->detached, $obj->pid], [1, $PROCESS_ID];
+};
+
+subtest 'daemonize. parent' => sub {
+    plan tests => 7;
+
+    my $pid  = 100500;
+    my $logs = [];
+
+    my $control_posix = qtakeover 'POSIX' => (
+        fork => sub {
+            pass 'fork() method is invoked';
+            return $pid;
+        },
+        exit => sub {
+            pass 'fork() method is invoked';
+            my $exit_status = shift;
+            is $exit_status, 0;
+        },
+    );
+    my $control_daemon = qtakeover 'JIP::Daemon' => (
+        logger => qobj(info => qmeth {
+            my ($self, $msg) = @ARG;
+            push @{ $logs }, $msg;
+        }),
+        drop_privileges => sub {
+            pass 'drop_privileges() method is invoked';
+        },
+    );
+
+    my $obj = JIP::Daemon->new->daemonize;
+
+    is_deeply [$obj->detached, $obj->pid], [1, $pid];
+
+    # daemonize on detached process changes nothing
+    $obj->daemonize;
+    is_deeply [$obj->detached, $obj->pid], [1, $pid];
+    is_deeply $logs, [
+        'Daemonizing the process',
+        'Spawned process pid=100500. Parent exiting',
+    ];
+};
+
+subtest 'daemonize. child' => sub {
+    plan tests => 8;
+
+    my $pid  = 500100;
+    my $logs = [];
+
+    my $control_posix = qtakeover 'POSIX' => (
+        fork => sub {
+            pass 'fork() method is invoked';
+            return 0;
+        },
+        setsid => sub {
+            pass 'setsid() method is invoked';
+            return 1;
+        },
+        getpid => sub {
+            pass 'getpid() method is invoked';
+            return $pid;
+        },
+    );
+    my $control_daemon = qtakeover 'JIP::Daemon' => (
+        logger => qobj(info => qmeth {
+            my ($self, $msg) = @ARG;
+            push @{ $logs }, $msg;
+        }),
+        reopen_std => sub {
+            pass 'reopen_std() method is invoked';
+        },
+        drop_privileges => sub {
+            pass 'drop_privileges() method is invoked';
+        },
+    );
+
+    my $obj = JIP::Daemon->new->daemonize;
+
+    is_deeply [$obj->detached, $obj->pid], [1, $pid];
+
+    # daemonize on detached process changes nothing
+    $obj->daemonize;
+    is_deeply [$obj->detached, $obj->pid], [1, $pid];
+    is_deeply $logs, ['Daemonizing the process'];
+};
+
+subtest 'daemonize. exceptions' => sub {
+    plan tests => 6;
+
+    my $logs = [];
+
+    my $control_daemon = qtakeover 'JIP::Daemon' => (
+        logger => qobj(info => qmeth {
+            my ($self, $msg) = @ARG;
+            push @{ $logs }, $msg;
+        }),
+    );
+
+    my $control_posix = qtakeover 'POSIX' => (
+        fork => sub {
+            pass 'fork() method is invoked';
+            return undef;
+        },
+    );
+
+    eval { JIP::Daemon->new->daemonize } or do {
+        like $EVAL_ERROR, qr{^Can't \s fork}x;
+    };
+
+    $control_posix->restore('fork');
+    $control_posix->override(
+        fork => sub {
+            pass 'fork() method is invoked';
+            return 0;
+        },
+        setsid => sub {
+            pass 'setsid() method is invoked';
+            return undef;
+        },
+    );
+
+    eval { JIP::Daemon->new->daemonize } or do {
+        like $EVAL_ERROR, qr{^Can't \s start \s a \s new \s session:}x;
+    };
+
+    is_deeply $logs, ['Daemonizing the process', 'Daemonizing the process'];
 };
 
