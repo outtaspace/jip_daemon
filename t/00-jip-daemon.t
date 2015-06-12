@@ -8,8 +8,6 @@ use Mock::Quick qw(qtakeover qobj qmeth);
 use English qw(-no_match_vars);
 use Capture::Tiny qw(capture capture_stderr);
 
-use lib::abs qw(../lib);
-
 plan tests => 12;
 
 subtest 'Require some module' => sub {

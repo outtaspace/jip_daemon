@@ -1,3 +1,7 @@
 MANIFEST            This list of files
 lib/JIP/Daemon.pm
 t/00-jip-daemon.t
+Makefile.PL
+Changes
+LICENSE
+README
