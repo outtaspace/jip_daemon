@@ -161,25 +161,25 @@ sub drop_privileges {
     if (defined(my $uid = $self->uid)) {
         $self->_log('Set uid=%d', $uid);
         POSIX::setuid($self->uid)
-            or croak(sprintf q{Can't set uid %s}, $self->uid);
+            or croak(sprintf q{Can't set uid "%s": %s}, $self->uid, $OS_ERROR);
     }
 
     if (defined(my $gid = $self->gid)) {
         $self->_log('Set gid=%d', $gid);
         POSIX::setgid($gid)
-            or croak(sprintf q{Can't set gid %s}, $gid);
+            or croak(sprintf q{Can't set gid "%s": %s}, $gid, $OS_ERROR);
     }
 
     if (defined(my $umask = $self->umask)) {
         $self->_log('Set umask=%s', $umask);
         POSIX::umask($umask)
-            or croak(sprintf q{Can't set umask %s: %s}, $umask, $OS_ERROR);
+            or croak(sprintf q{Can't set umask "%s": %s}, $umask, $OS_ERROR);
     }
 
     if (defined(my $cwd = $self->cwd)) {
         $self->_log('Set cwd=%s', $cwd);
         POSIX::chdir($cwd)
-            or croak(sprintf q{Can't chdir to %s: %s}, $cwd, $OS_ERROR);
+            or croak(sprintf q{Can't chdir to "%s": %s}, $cwd, $OS_ERROR);
     }
 
     return $self;
