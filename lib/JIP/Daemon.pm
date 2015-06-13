@@ -165,8 +165,8 @@ sub drop_privileges {
 
     if (defined(my $uid = $self->uid)) {
         $self->_log('Set uid=%d', $uid);
-        POSIX::setuid($self->uid)
-            or croak(sprintf q{Can't set uid "%s": %s}, $self->uid, $OS_ERROR);
+        POSIX::setuid($uid)
+            or croak(sprintf q{Can't set uid "%s": %s}, $uid, $OS_ERROR);
     }
 
     if (defined(my $gid = $self->gid)) {
