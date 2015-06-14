@@ -9,7 +9,7 @@ use English qw(-no_match_vars);
 use Mock::Quick qw(qtakeover qobj qmeth);
 use Capture::Tiny qw(capture capture_stderr);
 
-plan tests => 12;
+plan tests => 13;
 
 subtest 'Require some module' => sub {
     plan tests => 2;
@@ -68,6 +68,13 @@ subtest 'new()' => sub {
         like $EVAL_ERROR, qr{^Bad \s argument \s "log_callback"}x;
     };
 
+    eval { JIP::Daemon->new(on_fork => undef) } or do {
+        like $EVAL_ERROR, qr{^Bad \s argument \s "on_fork"}x;
+    };
+    eval { JIP::Daemon->new(on_fork => q{}) } or do {
+        like $EVAL_ERROR, qr{^Bad \s argument \s "on_fork"}x;
+    };
+
     my $obj = JIP::Daemon->new;
     ok $obj, 'got instance if JIP::Daemon';
 
@@ -89,6 +96,7 @@ subtest 'new()' => sub {
         dry_run
         detached
         log_callback
+        on_fork
     );
 
     is $obj->pid,      $PROCESS_ID;
@@ -100,6 +108,7 @@ subtest 'new()' => sub {
     is $obj->umask,    undef;
     is $obj->logger,   undef;
     is $obj->logger,   undef;
+    is $obj->on_fork,  undef;
 
     is ref $obj->log_callback, 'CODE';
 
@@ -394,5 +403,31 @@ subtest 'daemonize. exceptions' => sub {
         like $EVAL_ERROR, qr{^Can't \s start \s a \s new \s session:}x;
     };
     is_deeply $logs, ['Daemonizing the process', 'Daemonizing the process'];
+};
+
+subtest '"on_fork" callback' => sub {
+    plan tests => 5;
+
+    my $control_posix = qtakeover 'POSIX' => (
+        fork => sub {
+            pass 'fork() method is invoked';
+            return 0; # child process
+        },
+        setsid => sub {
+            pass 'setsid() method is invoked';
+            return !!1;
+        },
+        getpid => sub {
+            pass 'getpid() method is invoked';
+            return $PROCESS_ID;
+        },
+    );
+
+    JIP::Daemon->new(on_fork => sub {
+        pass '"on_fork" callback is invoked';
+
+        my $proc = shift;
+        is ref($proc), 'JIP::Daemon';
+    })->daemonize;
 };
 
