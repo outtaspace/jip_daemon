@@ -193,8 +193,11 @@ sub drop_privileges {
 sub try_kill {
     my ($self, $signal) = @ARG;
 
+    # parameter order in POSIX.pm
+    # CORE::kill($signal, $pid);
+    # POSIX::kill($pid, $signal);
     if (defined(my $pid = $self->pid)) {
-        return POSIX::kill(defined $signal ? $signal : 'KILL', $pid);
+        return POSIX::kill($pid, defined $signal ? $signal : q{0});
     }
     else {
         carp q{No subprocess running};

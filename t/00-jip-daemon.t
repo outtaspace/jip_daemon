@@ -134,17 +134,17 @@ subtest 'try_kill()' => sub {
 
     my $control = qtakeover 'POSIX' => (
         kill => sub {
-            my ($signal, $pid) = @ARG;
-            is_deeply [$signal, $pid], ['USR1', $PROCESS_ID];
+            my ($pid, $signal) = @ARG;
+            is_deeply [$pid, $signal], [$PROCESS_ID, q{9}];
             return 1;
         },
     );
-    is(JIP::Daemon->new->try_kill('USR1'), 1);
+    is(JIP::Daemon->new->try_kill(q{9}), 1);
     $control->restore('kill');
 
     $control->override(kill => sub {
-        my ($signal, $pid) = @ARG;
-        is_deeply [$signal, $pid], ['KILL', $PROCESS_ID];
+        my ($pid, $signal) = @ARG;
+        is_deeply [$pid, $signal], [$PROCESS_ID, q{0}];
         return 1;
     });
     is(JIP::Daemon->new->try_kill, 1);
@@ -153,7 +153,7 @@ subtest 'try_kill()' => sub {
     my $std_err = capture_stderr {
         my $control_daemon = qtakeover 'JIP::Daemon' => (pid => sub { undef });
 
-        is(JIP::Daemon->new->try_kill(0), undef);
+        is(JIP::Daemon->new->try_kill(q{0}), undef);
     };
     like $std_err, qr{^No \s subprocess \s running}x;
 };
