@@ -22,12 +22,12 @@ subtest 'Require some module' => sub {
 };
 
 subtest 'try_kill()' => sub {
-    plan tests => 2;
+    plan tests => 3;
 
+    is(JIP::Daemon->new->try_kill,    1);
     is(JIP::Daemon->new->try_kill(0), 1);
 
     local $SIG{'USR1'} = sub { pass 'USR1 caught'; };
-
     JIP::Daemon->new->try_kill(10);
 };
 
