@@ -209,7 +209,7 @@ sub status {
     my $self = shift;
     my $pid  = $self->pid;
 
-    return $pid, POSIX::kill(0, $pid) ? 1 : 0, $self->detached;
+    return $pid, POSIX::kill($pid, 0) ? 1 : 0, $self->detached;
 }
 
 # private methods

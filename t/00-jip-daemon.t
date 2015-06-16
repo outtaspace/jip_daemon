@@ -163,8 +163,8 @@ subtest 'status()' => sub {
 
     my $control = qtakeover 'POSIX' => (
         kill => sub {
-            my ($signal, $pid) = @ARG;
-            is_deeply [$signal, $pid], [0, $PROCESS_ID];
+            my ($pid, $signal) = @ARG;
+            is_deeply [$pid, $signal], [$PROCESS_ID, 0];
             return 1;
         },
     );
