@@ -173,7 +173,7 @@ subtest 'status()' => sub {
 };
 
 subtest 'drop_privileges()' => sub {
-    plan tests => 5;
+    plan tests => 9;
 
     my $logs       = [];
     my $empty_logs = sub { $logs = []; };
@@ -183,38 +183,59 @@ subtest 'drop_privileges()' => sub {
         push @{ $logs }, @ARG;
     };
 
-    my $control = qtakeover 'POSIX' => (
-        setuid => sub { 1 },
-        setgid => sub { 1 },
-        umask  => sub { 1 },
-        chdir  => sub { 1 },
-    );
-
     {
         my $uid = '65534';
+
+        my $control = qtakeover 'POSIX' => (setuid => sub {
+            is $ARG[0], $uid;
+            return 1;
+        });
+
         is(
             ref JIP::Daemon->new(uid => $uid, log_callback => $cb)->drop_privileges,
             'JIP::Daemon',
         );
         is_deeply $logs, ['Set uid=%d', $uid];
+
         $empty_logs->();
     }
     {
         my $gid = '65534';
+
+        my $control = qtakeover 'POSIX' => (setgid => sub {
+            is $ARG[0], $gid;
+            return 1;
+        });
+
         JIP::Daemon->new(gid => $gid, log_callback => $cb)->drop_privileges;
         is_deeply $logs, ['Set gid=%d', $gid];
+
         $empty_logs->();
     }
     {
         my $umask = 0;
+
+        my $control = qtakeover 'POSIX' => (umask => sub {
+            is $ARG[0], $umask;
+            return 1;
+        });
+
         JIP::Daemon->new(umask => $umask, log_callback => $cb)->drop_privileges;
         is_deeply $logs, ['Set umask=%s', $umask];
+
         $empty_logs->();
     }
     {
         my $cwd = q{/};
+
+        my $control = qtakeover 'POSIX' => (chdir => sub {
+            is $ARG[0], $cwd;
+            return 1;
+        });
+
         JIP::Daemon->new(cwd => $cwd, log_callback => $cb)->drop_privileges;
         is_deeply $logs, ['Set cwd=%s', $cwd];
+
         $empty_logs->();
     }
 };
