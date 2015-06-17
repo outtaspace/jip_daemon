@@ -249,15 +249,20 @@ subtest 'reopen_std()' => sub {
     my $obj;
 
     my ($std_out, $std_err) = capture {
-        $obj = JIP::Daemon->new(uid => 1)->reopen_std;
-        print {*STDOUT} q{std_out msg}
-            or croak(q{Can't print to STDOUT: }. $OS_ERROR);
-        print {*STDERR} q{std_err msg}
-            or croak(q{Can't print to STDERR: }. $OS_ERROR);
+        print {*STDOUT} q{first std_out msg}
+            or croak(sprintf q{Can't print to STDOUT: %s}, $OS_ERROR);
+        print {*STDERR} q{first std_err msg}
+            or croak(sprintf q{Can't print to STDERR: %s}, $OS_ERROR);
+
+        $obj = JIP::Daemon->new->reopen_std;
+        print {*STDOUT} q{second std_out msg}
+            or croak(sprintf q{Can't print to STDOUT: %s}, $OS_ERROR);
+        print {*STDERR} q{second std_err msg}
+            or croak(sprintf q{Can't print to STDERR: %s}, $OS_ERROR);
     };
 
     is ref($obj), 'JIP::Daemon';
-    is_deeply[$std_out, $std_err], [q{}, q{}];
+    is_deeply[$std_out, $std_err], [q{first std_out msg}, q{first std_err msg}];
 };
 
 subtest 'daemonize. dry_run' => sub {
