@@ -28,6 +28,15 @@ my $default_log_callback = sub {
     }
 };
 
+# Will be shipping with Perl 5.22
+eval {
+    require Sub::Util;
+
+    if (my $set_subname = Sub::Util->can('set_subname')) {
+        $set_subname->('default_log_callback', $default_log_callback);
+    }
+};
+
 has $_ => (get => q{+}, set => q{-}) for qw(
     pid
     uid
