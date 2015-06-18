@@ -172,8 +172,8 @@ subtest 'status()' => sub {
 
     my $control = qtakeover 'POSIX' => (
         kill => sub {
-            my ($signal, $pid) = @ARG;
-            is_deeply [$signal, $pid], [0, $PROCESS_ID];
+            my ($pid, $signal) = @ARG;
+            is_deeply [$pid, $signal], [$PROCESS_ID, 0];
             return 1;
         },
     );
@@ -182,7 +182,7 @@ subtest 'status()' => sub {
 };
 
 subtest 'drop_privileges()' => sub {
-    plan tests => 5;
+    plan tests => 9;
 
     my $logs       = [];
     my $empty_logs = sub { $logs = []; };
@@ -192,38 +192,59 @@ subtest 'drop_privileges()' => sub {
         push @{ $logs }, @ARG;
     };
 
-    my $control = qtakeover 'POSIX' => (
-        setuid => sub { 1 },
-        setgid => sub { 1 },
-        umask  => sub { 1 },
-        chdir  => sub { 1 },
-    );
-
     {
         my $uid = '65534';
+
+        my $control = qtakeover 'POSIX' => (setuid => sub {
+            is $ARG[0], $uid;
+            return 1;
+        });
+
         is(
             ref JIP::Daemon->new(uid => $uid, log_callback => $cb)->drop_privileges,
             'JIP::Daemon',
         );
         is_deeply $logs, ['Set uid=%d', $uid];
+
         $empty_logs->();
     }
     {
         my $gid = '65534';
+
+        my $control = qtakeover 'POSIX' => (setgid => sub {
+            is $ARG[0], $gid;
+            return 1;
+        });
+
         JIP::Daemon->new(gid => $gid, log_callback => $cb)->drop_privileges;
         is_deeply $logs, ['Set gid=%d', $gid];
+
         $empty_logs->();
     }
     {
         my $umask = 0;
+
+        my $control = qtakeover 'POSIX' => (umask => sub {
+            is $ARG[0], $umask;
+            return 1;
+        });
+
         JIP::Daemon->new(umask => $umask, log_callback => $cb)->drop_privileges;
         is_deeply $logs, ['Set umask=%s', $umask];
+
         $empty_logs->();
     }
     {
         my $cwd = q{/};
+
+        my $control = qtakeover 'POSIX' => (chdir => sub {
+            is $ARG[0], $cwd;
+            return 1;
+        });
+
         JIP::Daemon->new(cwd => $cwd, log_callback => $cb)->drop_privileges;
         is_deeply $logs, ['Set cwd=%s', $cwd];
+
         $empty_logs->();
     }
 };
@@ -258,15 +279,20 @@ subtest 'reopen_std()' => sub {
     my $obj;
 
     my ($std_out, $std_err) = capture {
-        $obj = JIP::Daemon->new(uid => 1)->reopen_std;
-        print {*STDOUT} q{std_out msg}
-            or croak(q{Can't print to STDOUT: }. $OS_ERROR);
-        print {*STDERR} q{std_err msg}
-            or croak(q{Can't print to STDERR: }. $OS_ERROR);
+        print {*STDOUT} q{first std_out msg}
+            or croak(sprintf q{Can't print to STDOUT: %s}, $OS_ERROR);
+        print {*STDERR} q{first std_err msg}
+            or croak(sprintf q{Can't print to STDERR: %s}, $OS_ERROR);
+
+        $obj = JIP::Daemon->new->reopen_std;
+        print {*STDOUT} q{second std_out msg}
+            or croak(sprintf q{Can't print to STDOUT: %s}, $OS_ERROR);
+        print {*STDERR} q{second std_err msg}
+            or croak(sprintf q{Can't print to STDERR: %s}, $OS_ERROR);
     };
 
     is ref($obj), 'JIP::Daemon';
-    is_deeply[$std_out, $std_err], [q{}, q{}];
+    is_deeply[$std_out, $std_err], [q{first std_out msg}, q{first std_err msg}];
 };
 
 subtest 'daemonize. dry_run' => sub {

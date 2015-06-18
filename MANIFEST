@@ -1,6 +1,7 @@
 MANIFEST            This list of files
 lib/JIP/Daemon.pm
 t/00-jip-daemon.t
+t/01-jip-daemon-integration.t
 Makefile.PL
 Changes
 LICENSE
