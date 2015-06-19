@@ -6,10 +6,20 @@ use warnings FATAL => 'all';
 use Test::More;
 use English qw(-no_match_vars);
 
-plan tests => 3;
+if ($ENV{'TEST_JIP_DAEMON'}) {
+    plan tests => 3;
+}
+else {
+    plan skip_all => 'set TEST_JIP_DAEMON to enable this test (developer only!)';
+}
 
 subtest 'Require some module' => sub {
+    plan tests => 3;
+
     use_ok 'JIP::Daemon', '0.01';
+
+    require_ok 'JIP::Daemon';
+    is $JIP::Daemon::VERSION, '0.01';
 
     diag(
         sprintf 'Testing JIP::Daemon %s, Perl %s, %s',
@@ -17,8 +27,6 @@ subtest 'Require some module' => sub {
             $PERL_VERSION,
             $EXECUTABLE_NAME,
     );
-
-    done_testing();
 };
 
 subtest 'try_kill()' => sub {
