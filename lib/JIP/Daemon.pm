@@ -332,13 +332,32 @@ Most Daemon processes runs as super-user, for security reasons they should prote
 
 =head2 logger
 
-    $proc->logger->info(q{Hello});
+    JIP::Daemon->new(logger => Mojo::Log->new)->logger->info('Hello');
 
 Simple logger, based on L<Mojo::Log> interface.
 
 =head2 log_callback
 
-    my $log_callback = $proc->log_callback;
+With default callback:
+
+    my $proc = JIP::Daemon->new(logger => Mojo::Log->new);
+
+    # $proc->logger->info('Hello');
+    $proc->log_callback->($proc, 'Hello');
+
+    # $proc->logger->info(sprintf 'format %s', 'line');
+    $proc->log_callback->($proc, 'format %s', 'line');
+
+With custom callback:
+
+    my $proc = JIP::Daemon->new(
+        logger       => Mojo::Log->new,
+        log_callback => sub {
+            my ($proc, @lines) = @_;
+            $proc->logger->debug(@lines);
+        },
+    );
+    $proc->log_callback->($proc, 'Hello');
 
 =head2 on_fork
 
