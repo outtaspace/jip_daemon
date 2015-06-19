@@ -296,7 +296,7 @@ subtest 'reopen_std()' => sub {
 };
 
 subtest 'daemonize. dry_run' => sub {
-    plan tests => 3;
+    plan tests => 4;
 
     my $control_daemon = qtakeover 'JIP::Daemon' => (
         drop_privileges => sub {
@@ -305,11 +305,10 @@ subtest 'daemonize. dry_run' => sub {
     );
 
     my $obj = JIP::Daemon->new(dry_run => 1)->daemonize;
-    is_deeply [$obj->detached, $obj->pid], [1, $PROCESS_ID];
+    is_deeply [$obj->detached, $obj->pid], [0, $PROCESS_ID];
 
-    # daemonize on detached process changes nothing
     $obj->daemonize;
-    is_deeply [$obj->detached, $obj->pid], [1, $PROCESS_ID];
+    is_deeply [$obj->detached, $obj->pid], [0, $PROCESS_ID];
 };
 
 subtest 'daemonize. parent' => sub {

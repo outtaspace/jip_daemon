@@ -148,6 +148,7 @@ sub daemonize {
 
             $self->_set_pid(POSIX::getpid());
             $self->reopen_std;
+            $self->_set_detached(1);
 
             if (defined(my $on_fork = $self->on_fork)) {
                 $on_fork->($self);
@@ -158,6 +159,7 @@ sub daemonize {
         else {
             $self->_log('Spawned process pid=%d. Parent exiting', $pid);
             $self->_set_pid($pid);
+            $self->_set_detached(1);
             POSIX::exit(0);
         }
     }
@@ -167,7 +169,7 @@ sub daemonize {
 
     $self->drop_privileges;
 
-    return $self->_set_detached(1);
+    return $self;
 }
 
 sub reopen_std {
@@ -258,21 +260,45 @@ Version 0.01
 
 =head1 SYNOPSIS
 
-    use JIP::Daemon;
-    use Mojo::Log;
+Just run:
 
-    my $proc = JIP::Daemon->new(
-        logger  => Mojo::Log->new,
-        dry_run => 1,
-    );
+    use JIP::Daemon;
+
+    my $proc = JIP::Daemon->new;
+
+    # Send program to backgroung.
+    # If the program is already a running background job, the daemonize method shall have no effect.
+    $proc->daemonize;
+
+    # In the backgroung process:
+    $proc->detached; # 1
+    printf qq{pid(%s), is_alive(%d), detached(%d)\n}, $proc->status;
+    $proc->try_kill(0);
+
+Dry run:
+
+    use JIP::Daemon;
+
+    my $proc = JIP::Daemon->new(dry_run => 1);
 
     $proc->daemonize;
 
-    if ($proc->try_kill(0) and $proc->detached) {
-        printf qq{pid(%s), active(%s), detached(%s)\n}, $proc->status;
-    }
+    # In the same process
+    $proc->detached; # 0
+
+With logger:
+
+    use Mojo::Log;
+    use JIP::Daemon;
+
+    my $proc = JIP::Daemon->new(logger  => Mojo::Log->new);
+
+    $proc->daemonize;
 
 With on_fork:
+
+    use Mojo::Log;
+    use JIP::Daemon;
 
     # log to STDERR
     my $log = Mojo::Log->new;
@@ -403,7 +429,7 @@ This is identical to Perl's builtin kill() function for sending signals to proce
 
     my ($pid, $is_alive, $is_detached) = $proc->status;
 
-Returns a list of process attributes: PID, is alive, detached (in backgroung).
+Returns a list of process attributes: PID, is alive, is detached (in backgroung).
 
 =head1 SEE ALSO
 
