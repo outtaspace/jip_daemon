@@ -45,7 +45,7 @@ has $_ => (get => q{+}, set => q{-}) for qw(
     umask
     logger
     dry_run
-    detached
+    is_detached
     log_callback
     on_fork
 );
@@ -125,13 +125,13 @@ sub new {
         ->_set_log_callback($log_callback)
         ->_set_on_fork($on_fork)
         ->_set_pid($PROCESS_ID)
-        ->_set_detached(0);
+        ->_set_is_detached(0);
 }
 
 sub daemonize {
     my $self = shift;
 
-    return $self if $self->detached;
+    return $self if $self->is_detached;
 
     # Fork and kill parent
     if (not $self->dry_run) {
@@ -148,7 +148,7 @@ sub daemonize {
 
             $self->_set_pid(POSIX::getpid());
             $self->reopen_std;
-            $self->_set_detached(1);
+            $self->_set_is_detached(1);
 
             if (defined(my $on_fork = $self->on_fork)) {
                 $on_fork->($self);
@@ -159,7 +159,7 @@ sub daemonize {
         else {
             $self->_log('Spawned process pid=%d. Parent exiting', $pid);
             $self->_set_pid($pid);
-            $self->_set_detached(1);
+            $self->_set_is_detached(1);
             POSIX::exit(0);
         }
     }
@@ -234,7 +234,7 @@ sub status {
     my $self = shift;
     my $pid  = $self->pid;
 
-    return $pid, POSIX::kill($pid, 0) ? 1 : 0, $self->detached;
+    return $pid, POSIX::kill($pid, 0) ? 1 : 0, $self->is_detached;
 }
 
 # private methods
@@ -271,8 +271,8 @@ Just run:
     $proc->daemonize;
 
     # In the backgroung process:
-    $proc->detached; # 1
-    printf qq{pid(%s), is_alive(%d), detached(%d)\n}, $proc->status;
+    $proc->is_detached; # 1
+    printf qq{pid(%s), is_alive(%d), is_detached(%d)\n}, $proc->status;
     $proc->try_kill(0);
 
 Dry run:
@@ -284,7 +284,7 @@ Dry run:
     $proc->daemonize;
 
     # In the same process
-    $proc->detached; # 0
+    $proc->is_detached; # 0
 
 With logger:
 
@@ -320,9 +320,9 @@ L<JIP::Daemon> implements the following attributes.
 
     my $pid = $proc->pid;
 
-=head2 detached
+=head2 is_detached
 
-    my $detached => $proc->detached;
+    my $is_detached => $proc->is_detached;
 
 Process is detached from the controlling terminal.
 

@@ -94,21 +94,21 @@ subtest 'new()' => sub {
         umask
         logger
         dry_run
-        detached
+        is_detached
         log_callback
         on_fork
     );
 
-    is $obj->pid,      $PROCESS_ID;
-    is $obj->dry_run,  0;
-    is $obj->detached, 0;
-    is $obj->uid,      undef;
-    is $obj->gid,      undef;
-    is $obj->cwd,      undef;
-    is $obj->umask,    undef;
-    is $obj->logger,   undef;
-    is $obj->logger,   undef;
-    is $obj->on_fork,  undef;
+    is $obj->pid,         $PROCESS_ID;
+    is $obj->dry_run,     0;
+    is $obj->is_detached, 0;
+    is $obj->uid,         undef;
+    is $obj->gid,         undef;
+    is $obj->cwd,         undef;
+    is $obj->umask,       undef;
+    is $obj->logger,      undef;
+    is $obj->logger,      undef;
+    is $obj->on_fork,     undef;
 
     is ref $obj->log_callback, 'CODE';
 
@@ -305,10 +305,10 @@ subtest 'daemonize. dry_run' => sub {
     );
 
     my $obj = JIP::Daemon->new(dry_run => 1)->daemonize;
-    is_deeply [$obj->detached, $obj->pid], [0, $PROCESS_ID];
+    is_deeply [$obj->is_detached, $obj->pid], [0, $PROCESS_ID];
 
     $obj->daemonize;
-    is_deeply [$obj->detached, $obj->pid], [0, $PROCESS_ID];
+    is_deeply [$obj->is_detached, $obj->pid], [0, $PROCESS_ID];
 };
 
 subtest 'daemonize. parent' => sub {
@@ -339,11 +339,11 @@ subtest 'daemonize. parent' => sub {
     );
 
     my $obj = JIP::Daemon->new->daemonize;
-    is_deeply [$obj->detached, $obj->pid], [1, $pid];
+    is_deeply [$obj->is_detached, $obj->pid], [1, $pid];
 
     # daemonize on detached process changes nothing
     $obj->daemonize;
-    is_deeply [$obj->detached, $obj->pid], [1, $pid];
+    is_deeply [$obj->is_detached, $obj->pid], [1, $pid];
     is_deeply $logs, [
         'Daemonizing the process',
         'Spawned process pid=500. Parent exiting',
@@ -384,11 +384,11 @@ subtest 'daemonize. child' => sub {
     );
 
     my $obj = JIP::Daemon->new->daemonize;
-    is_deeply [$obj->detached, $obj->pid], [1, $pid];
+    is_deeply [$obj->is_detached, $obj->pid], [1, $pid];
 
     # daemonize on detached process changes nothing
     $obj->daemonize;
-    is_deeply [$obj->detached, $obj->pid], [1, $pid];
+    is_deeply [$obj->is_detached, $obj->pid], [1, $pid];
     is_deeply $logs, ['Daemonizing the process'];
 };
 
