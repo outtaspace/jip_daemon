@@ -8,7 +8,7 @@ use POSIX ();
 use Carp qw(carp croak);
 use English qw(-no_match_vars);
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 my $default_log_callback = sub {
     my ($self, @params) = @ARG;
@@ -242,7 +242,7 @@ JIP::Daemon - Daemonize server process.
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =head1 SYNOPSIS
 
