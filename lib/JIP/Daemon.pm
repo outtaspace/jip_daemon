@@ -47,7 +47,6 @@ has $_ => (get => q{+}, set => q{-}) for qw(
     dry_run
     is_detached
     log_callback
-    on_fork
 );
 
 sub new {
@@ -107,14 +106,6 @@ sub new {
         $log_callback = $default_log_callback;
     }
 
-    my $on_fork;
-    if (exists $param{'on_fork'}) {
-        $on_fork = $param{'on_fork'};
-
-        croak q{Bad argument "on_fork"}
-            unless defined $on_fork and ref($on_fork) eq 'CODE';
-    }
-
     return bless({}, $class)
         ->_set_dry_run($dry_run)
         ->_set_uid($uid)
@@ -123,7 +114,6 @@ sub new {
         ->_set_umask($umask)
         ->_set_logger($logger)
         ->_set_log_callback($log_callback)
-        ->_set_on_fork($on_fork)
         ->_set_pid($PROCESS_ID)
         ->_set_is_detached(0);
 }
@@ -149,10 +139,6 @@ sub daemonize {
             $self->_set_pid(POSIX::getpid());
             $self->reopen_std;
             $self->_set_is_detached(1);
-
-            if (defined(my $on_fork = $self->on_fork)) {
-                $on_fork->($self);
-            }
         }
 
         # this branch is the parent
@@ -295,23 +281,6 @@ With logger:
 
     $proc->daemonize;
 
-With on_fork:
-
-    use Mojo::Log;
-    use JIP::Daemon;
-
-    # log to STDERR
-    my $log = Mojo::Log->new;
-
-    my $proc = JIP::Daemon->new(
-        logger  => $log,
-        on_fork => sub {
-            # child process
-            # log to /path/to/file after the fork
-            $log = Mojo::Log->new(path => '/path/to/file);
-        },
-    )->daemonize;
-
 =head1 ATTRIBUTES
 
 L<JIP::Daemon> implements the following attributes.
@@ -384,12 +353,6 @@ With custom callback:
         },
     );
     $proc->log_callback->($proc, 'Hello');
-
-=head2 on_fork
-
-    my $on_fork_callback = $proc->on_fork;
-
-A sub reference containing the code to be run when a fork is detected.
 
 =head1 METHODS
 
