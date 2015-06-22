@@ -49,6 +49,7 @@ has $_ => (get => q{+}, set => q{-}) for qw(
     dry_run
     is_detached
     log_callback
+    on_fork_callback
 );
 
 sub new {
@@ -94,7 +95,7 @@ sub new {
         $logger = $param{'logger'};
 
         croak q{Bad argument "logger"}
-            unless defined $logger and $logger->can('info');
+            unless defined $logger and ref $logger and $logger->can('info');
     }
 
     my $log_callback;
@@ -110,6 +111,16 @@ sub new {
         $log_callback = $maybe_set_subname->('default_log_callback', $default_log_callback);
     }
 
+    my $on_fork_callback;
+    if (exists $param{'on_fork_callback'}) {
+        $on_fork_callback = $param{'on_fork_callback'};
+
+        croak q{Bad argument "on_fork_callback"}
+            unless defined $on_fork_callback and ref($on_fork_callback) eq 'CODE';
+
+        $on_fork_callback = $maybe_set_subname->('on_fork_callback', $on_fork_callback);
+    }
+
     return bless({}, $class)
         ->_set_dry_run($dry_run)
         ->_set_uid($uid)
@@ -118,6 +129,7 @@ sub new {
         ->_set_umask($umask)
         ->_set_logger($logger)
         ->_set_log_callback($log_callback)
+        ->_set_on_fork_callback($on_fork_callback)
         ->_set_pid($PROCESS_ID)
         ->_set_is_detached(0);
 }
@@ -150,6 +162,11 @@ sub daemonize {
             $self->_log('Spawned process pid=%d. Parent exiting', $pid);
             $self->_set_pid($pid);
             $self->_set_is_detached(1);
+
+            if (defined(my $cb = $self->on_fork_callback)) {
+                $cb->($self);
+            }
+
             POSIX::exit(0);
         }
     }
@@ -285,6 +302,18 @@ With logger:
 
     $proc->daemonize;
 
+With on_fork_callback:
+
+    use JIP::Daemon;
+
+    my $proc = JIP::Daemon->new(
+        on_fork_callback => sub {
+            # After daemonizing, and before exiting,
+            # run the given code in parent process
+            print $proc->pid;
+        },
+    )->daemonize;
+
 =head1 ATTRIBUTES
 
 L<JIP::Daemon> implements the following attributes.
@@ -357,6 +386,10 @@ With custom callback:
         },
     );
     $proc->log_callback->($proc, 'Hello');
+
+=head2 on_fork_callback
+
+After daemonizing, and before exiting, run the given code in parent process.
 
 =head1 METHODS
 
