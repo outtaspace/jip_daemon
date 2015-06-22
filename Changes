@@ -1,4 +1,10 @@
 Revision history for JIP-Daemon
 
+0.02    2015-06-20
+        Renamed detached attribute to is_detached.
+        Fixed parameter order for POSIX::kill.
+        Improved tests.
+        More reference docs.
+
 0.01    2015-06-12
         First version, released on an unsuspecting world.
