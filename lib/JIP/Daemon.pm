@@ -10,6 +10,17 @@ use English qw(-no_match_vars);
 
 our $VERSION = '0.01';
 
+my $maybe_set_subname = sub { $ARG[1]; };
+
+# Will be shipping with Perl 5.22
+eval {
+    require Sub::Util;
+
+    if (my $set_subname = Sub::Util->can('set_subname')) {
+        $maybe_set_subname = $set_subname;
+    }
+};
+
 my $default_log_callback = sub {
     my ($self, @params) = @ARG;
 
@@ -25,15 +36,6 @@ my $default_log_callback = sub {
         }
 
         $logger->info($msg) if defined $msg;
-    }
-};
-
-# Will be shipping with Perl 5.22
-eval {
-    require Sub::Util;
-
-    if (my $set_subname = Sub::Util->can('set_subname')) {
-        $set_subname->('default_log_callback', $default_log_callback);
     }
 };
 
@@ -102,9 +104,11 @@ sub new {
 
         croak q{Bad argument "log_callback"}
             unless defined $log_callback and ref($log_callback) eq 'CODE';
+
+        $log_callback = $maybe_set_subname->('custom_log_callback', $log_callback);
     }
     else {
-        $log_callback = $default_log_callback;
+        $log_callback = $maybe_set_subname->('default_log_callback', $default_log_callback);
     }
 
     my $on_fork;
