@@ -152,16 +152,15 @@ sub daemonize {
             POSIX::setsid()
                 or croak(sprintf q{Can't start a new session: %s}, $OS_ERROR);
 
-            $self->_set_pid(POSIX::getpid());
             $self->reopen_std;
-            $self->_set_is_detached(1);
+
+            $self->_set_pid(POSIX::getpid())->_set_is_detached(1);
         }
 
         # this branch is the parent
         else {
             $self->_log('Spawned process pid=%d. Parent exiting', $pid);
-            $self->_set_pid($pid);
-            $self->_set_is_detached(1);
+            $self->_set_pid($pid)->_set_is_detached(1);
 
             if (defined(my $cb = $self->on_fork_callback)) {
                 $cb->($self);
@@ -174,9 +173,7 @@ sub daemonize {
         $self->_set_pid($PROCESS_ID);
     }
 
-    $self->drop_privileges;
-
-    return $self;
+    return $self->drop_privileges;
 }
 
 sub reopen_std {

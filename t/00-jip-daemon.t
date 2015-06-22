@@ -303,7 +303,9 @@ subtest 'daemonize. dry_run' => sub {
 
     my $control_daemon = qtakeover 'JIP::Daemon' => (
         drop_privileges => sub {
+            my $proc = shift;
             pass 'drop_privileges() method is invoked';
+            return $proc;
         },
     );
 
@@ -337,7 +339,9 @@ subtest 'daemonize. parent' => sub {
             push @{ $logs }, $msg;
         }),
         drop_privileges => sub {
+            my $self = shift;
             pass 'drop_privileges() method is invoked';
+            return $self;
         },
     );
 
@@ -379,10 +383,14 @@ subtest 'daemonize. child' => sub {
             push @{ $logs }, $msg;
         }),
         reopen_std => sub {
+            my $self = shift;
             pass 'reopen_std() method is invoked';
+            return $self;
         },
         drop_privileges => sub {
+            my $self = shift;
             pass 'drop_privileges() method is invoked';
+            return $self;
         },
     );
 
