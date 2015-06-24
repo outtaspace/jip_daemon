@@ -180,11 +180,11 @@ sub reopen_std {
     my $self = shift;
 
     open STDIN,  '</dev/null'
-        or croak(sprintf q{Can't reopen STDIN: %s},   $OS_ERROR);
+        or croak(sprintf q{Can't reopen STDIN: %s},  $OS_ERROR);
     open STDOUT, '>/dev/null'
-        or croak(sprintf q{Can't reopen STDOUT: %s},  $OS_ERROR);
+        or croak(sprintf q{Can't reopen STDOUT: %s}, $OS_ERROR);
     open STDERR, '>/dev/null'
-        or croak(sprintf q{Can't reopen STDERR: %s},  $OS_ERROR);
+        or croak(sprintf q{Can't reopen STDERR: %s}, $OS_ERROR);
 
     return $self;
 }
@@ -222,10 +222,10 @@ sub drop_privileges {
 sub try_kill {
     my ($self, $signal) = @ARG;
 
-    # parameter order in POSIX.pm
-    # CORE::kill($signal, $pid);
-    # POSIX::kill($pid, $signal);
     if (defined(my $pid = $self->pid)) {
+        # parameter order in POSIX.pm
+        # CORE::kill($signal, $pid);
+        # POSIX::kill($pid, $signal);
         return POSIX::kill($pid, defined $signal ? $signal : q{0});
     }
     else {
@@ -271,13 +271,15 @@ Just run:
     my $proc = JIP::Daemon->new;
 
     # Send program to backgroung.
-    # If the program is already a running background job, the daemonize method shall have no effect.
-    $proc->daemonize;
+    $proc = $proc->daemonize;
 
     # In the backgroung process:
     $proc->is_detached; # 1
+    $proc->try_kill(0); # 1
     printf qq{pid(%s), is_alive(%d), is_detached(%d)\n}, $proc->status;
-    $proc->try_kill(0);
+
+    # If the program is already a running background job, the daemonize method shall have no effect.
+    $proc = $proc->daemonize;
 
 Dry run:
 
@@ -295,7 +297,7 @@ With logger:
     use Mojo::Log;
     use JIP::Daemon;
 
-    my $proc = JIP::Daemon->new(logger  => Mojo::Log->new);
+    my $proc = JIP::Daemon->new(logger => Mojo::Log->new);
 
     $proc->daemonize;
 
@@ -430,7 +432,7 @@ Returns a list of process attributes: PID, is alive, is detached (in backgroung)
 
 =head1 SEE ALSO
 
-POSIX, Privileges::Drop, Object::ForkAware, Proc::Daemon
+POSIX, Privileges::Drop, Object::ForkAware, Proc::Daemon, Daemon::Daemonize
 
 =head1 AUTHOR
 
