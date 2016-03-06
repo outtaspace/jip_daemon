@@ -3,7 +3,7 @@ package JIP::Daemon;
 use 5.006;
 use strict;
 use warnings;
-use JIP::ClassField;
+use JIP::ClassField 0.05;
 use POSIX ();
 use Carp qw(carp croak);
 use English qw(-no_match_vars);
@@ -12,7 +12,7 @@ our $VERSION = '0.03';
 
 my $maybe_set_subname = sub { $ARG[1]; };
 
-# Will be shipping with Perl 5.22
+# Supported on Perl 5.22+
 eval {
     require Sub::Util;
 
@@ -39,7 +39,7 @@ my $default_log_callback = sub {
     }
 };
 
-has $_ => (get => q{+}, set => q{-}) for qw(
+has [qw(
     pid
     uid
     gid
@@ -50,7 +50,7 @@ has $_ => (get => q{+}, set => q{-}) for qw(
     is_detached
     log_callback
     on_fork_callback
-);
+)] => (get => q{+}, set => q{-});
 
 sub new {
     my ($class, %param) = @ARG;
