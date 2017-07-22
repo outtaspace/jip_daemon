@@ -10,8 +10,6 @@ use English qw(-no_match_vars);
 use Mock::Quick qw(qtakeover qobj qmeth);
 use Capture::Tiny qw(capture);
 
-$ENV{'TEST_JIP_DAEMON'}=1;
-
 if ($ENV{'TEST_JIP_DAEMON'}) {
     plan tests => 4;
 }
@@ -106,7 +104,7 @@ subtest 'reopen_std()' => sub {
 sub slurp {
     my $fh = shift;
 
-    $INPUT_RECORD_SEPARATOR = undef;
+    local $INPUT_RECORD_SEPARATOR = undef;
     my $data = <$fh>;
 
     return $data;

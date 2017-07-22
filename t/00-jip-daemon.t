@@ -494,12 +494,3 @@ subtest 'daemonize. "on_fork_callback"' => sub {
     })->daemonize;
 };
 
-sub slurp {
-    my $fh = shift;
-
-    $INPUT_RECORD_SEPARATOR = undef;
-    my $data = <$fh>;
-
-    return $data;
-}
-
