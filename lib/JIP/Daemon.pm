@@ -4,6 +4,7 @@ use 5.006;
 use strict;
 use warnings;
 use JIP::ClassField 0.05;
+use File::Spec;
 use POSIX ();
 use Carp qw(carp croak);
 use English qw(-no_match_vars);
@@ -50,7 +51,12 @@ has [qw(
     is_detached
     log_callback
     on_fork_callback
+    stdin
+    stdout
+    stderr
 )] => (get => q{+}, set => q{-});
+
+has devnull => (get => q{+}, set => q{-}, default => File::Spec->devnull);
 
 sub new {
     my ($class, %param) = @ARG;
@@ -121,6 +127,30 @@ sub new {
         $on_fork_callback = $maybe_set_subname->('on_fork_callback', $on_fork_callback);
     }
 
+    my $stdin;
+    if (exists $param{'stdin'}) {
+        $stdin = $param{'stdin'};
+
+        croak q{Bad argument "stdin"}
+            unless defined $stdin and length $stdin;
+    }
+
+    my $stdout;
+    if (exists $param{'stdout'}) {
+        $stdout = $param{'stdout'};
+
+        croak q{Bad argument "stdout"}
+            unless defined $stdout and length $stdout;
+    }
+
+    my $stderr;
+    if (exists $param{'stderr'}) {
+        $stderr = $param{'stderr'};
+
+        croak q{Bad argument "stderr"}
+            unless defined $stderr and length $stderr;
+    }
+
     return bless({}, $class)
         ->_set_dry_run($dry_run)
         ->_set_uid($uid)
@@ -131,7 +161,11 @@ sub new {
         ->_set_log_callback($log_callback)
         ->_set_on_fork_callback($on_fork_callback)
         ->_set_pid($PROCESS_ID)
-        ->_set_is_detached(0);
+        ->_set_is_detached(0)
+        ->_set_stdin($stdin)
+        ->_set_stdout($stdout)
+        ->_set_stderr($stderr)
+        ->_set_devnull;
 }
 
 sub daemonize {
@@ -179,12 +213,36 @@ sub daemonize {
 sub reopen_std {
     my $self = shift;
 
-    open STDIN,  '</dev/null'
-        or croak(sprintf q{Can't reopen STDIN: %s},  $OS_ERROR);
-    open STDOUT, '>/dev/null'
-        or croak(sprintf q{Can't reopen STDOUT: %s}, $OS_ERROR);
-    open STDERR, '>/dev/null'
-        or croak(sprintf q{Can't reopen STDERR: %s}, $OS_ERROR);
+    my $stdin;
+    if (defined $self->stdin) {
+        $stdin = $self->stdin;
+        $self->_log('Reopen STDIN to: %s', $stdin);
+    }
+    else {
+        $stdin = q{<}. $self->devnull;
+    }
+
+    my $stdout;
+    if (defined $self->stdout) {
+        $stdout = $self->stdout;
+        $self->_log('Reopen STDOUT to: %s', $stdout);
+    }
+    else {
+        $stdout = q{+>}. $self->devnull;
+    }
+
+    my $stderr;
+    if (defined $self->stderr) {
+        $stderr = $self->stderr;
+        $self->_log('Reopen STDERR to: %s', $stderr);
+    }
+    else {
+        $stderr = q{+>}. $self->devnull;
+    }
+
+    open STDIN,  $stdin  or croak(sprintf q{Can't reopen STDIN: %s},  $OS_ERROR);
+    open STDOUT, $stdout or croak(sprintf q{Can't reopen STDOUT: %s}, $OS_ERROR);
+    open STDERR, $stderr or croak(sprintf q{Can't reopen STDERR: %s}, $OS_ERROR);
 
     return $self;
 }
@@ -390,6 +448,30 @@ With custom callback:
 
 After daemonizing, and before exiting, run the given code in parent process.
 
+=head2 devnull
+
+    my $devnull = $proc->devnull;
+
+Returns a string representation of the null device.
+
+=head2 stdin
+
+    my $stdin = $proc->stdin;
+
+If this parameter is supplied, redirect STDIN to file.
+
+=head2 stdout
+
+    my $stdout = $proc->stdout;
+
+If this parameter is supplied, redirect STDOUT to file.
+
+=head2 stderr
+
+    my $stderr = $proc->stderr;
+
+If this parameter is supplied, redirect STDERR to file.
+
 =head1 METHODS
 
 =head2 new
@@ -410,6 +492,16 @@ Daemonize server process.
     $proc = $proc->reopen_std;
 
 Reopen STDIN, STDOUT, STDERR to /dev/null.
+
+    my $proc = JIP::Daemon->new(
+        stdin  => '</path/to/in.log',
+        stdout => '+>/path/to/out.log',
+        stderr => '+>/path/to/err.log',
+    );
+
+    $proc = $proc->reopen_std;
+
+The stdin, stdout, and stderr arguments are file names that will be opened and be used to replace the standard file descriptors. These special modes only work with two-argument form of C<open>.
 
 =head2 drop_privileges
 

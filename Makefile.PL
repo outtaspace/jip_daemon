@@ -14,7 +14,9 @@ WriteMakefile(
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => 0,
     },
-    BUILD_REQUIRES => {
+    TEST_REQUIRES => {
+        'File::Spec'    => 0,
+        'File::Temp'    => 0,
         'Test::More'    => 0,
         'Carp'          => 0,
         'English'       => 0,
@@ -25,6 +27,7 @@ WriteMakefile(
         'Carp'            => 0,
         'POSIX'           => 0,
         'English'         => 0,
+        'File::Spec'      => 0,
         'JIP::ClassField' => '0.05',
     },
     dist  => {COMPRESS => 'gzip -9f', SUFFIX => 'gz'},

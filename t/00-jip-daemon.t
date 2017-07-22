@@ -4,6 +4,7 @@ use 5.006;
 use strict;
 use warnings FATAL => 'all';
 use Test::More;
+use File::Spec;
 use Carp qw(croak);
 use English qw(-no_match_vars);
 use Mock::Quick qw(qtakeover qobj qmeth);
@@ -26,7 +27,7 @@ subtest 'Require some module' => sub {
 };
 
 subtest 'new(). exceptions' => sub {
-    plan tests => 14;
+    plan tests => 20;
 
     eval { JIP::Daemon->new(uid => undef) } or do {
         like $EVAL_ERROR, qr{^Bad \s argument \s "uid"}x;
@@ -76,10 +77,31 @@ subtest 'new(). exceptions' => sub {
     eval { JIP::Daemon->new(on_fork_callback => q{}) } or do {
         like $EVAL_ERROR, qr{^Bad \s argument \s "on_fork_callback"}x;
     };
+
+    eval { JIP::Daemon->new(stdin => undef) } or do {
+        like $EVAL_ERROR, qr{^Bad \s argument \s "stdin"}x;
+    };
+    eval { JIP::Daemon->new(stdin => q{}) } or do {
+        like $EVAL_ERROR, qr{^Bad \s argument \s "stdin"}x;
+    };
+
+    eval { JIP::Daemon->new(stdout => undef) } or do {
+        like $EVAL_ERROR, qr{^Bad \s argument \s "stdout"}x;
+    };
+    eval { JIP::Daemon->new(stdout => q{}) } or do {
+        like $EVAL_ERROR, qr{^Bad \s argument \s "stdout"}x;
+    };
+
+    eval { JIP::Daemon->new(stderr => undef) } or do {
+        like $EVAL_ERROR, qr{^Bad \s argument \s "stderr"}x;
+    };
+    eval { JIP::Daemon->new(stderr => q{}) } or do {
+        like $EVAL_ERROR, qr{^Bad \s argument \s "stderr"}x;
+    };
 };
 
 subtest 'new()' => sub {
-    plan tests => 13;
+    plan tests => 17;
 
     my $obj = JIP::Daemon->new;
     ok $obj, 'got instance if JIP::Daemon';
@@ -103,6 +125,10 @@ subtest 'new()' => sub {
         is_detached
         log_callback
         on_fork_callback
+        devnull
+        stdin
+        stdout
+        stderr
     );
 
     is $obj->pid,              $PROCESS_ID;
@@ -114,6 +140,10 @@ subtest 'new()' => sub {
     is $obj->umask,            undef;
     is $obj->logger,           undef;
     is $obj->on_fork_callback, undef;
+    is $obj->devnull,          File::Spec->devnull;
+    is $obj->stdin,            undef;
+    is $obj->stdout,           undef;
+    is $obj->stderr,           undef;
 
     is ref $obj->log_callback, 'CODE';
 };
@@ -277,25 +307,27 @@ subtest 'exceptions in drop_privileges()' => sub {
 };
 
 subtest 'reopen_std()' => sub {
-    plan tests => 2;
+    plan tests => 4;
 
-    my $obj;
+    my $obj = JIP::Daemon->new;
+    is ref($obj), 'JIP::Daemon';
 
-    my ($std_out, $std_err) = capture {
-        print {*STDOUT} q{first std_out msg}
+    my ($stdout, $stderr) = capture {
+        print {*STDOUT} q{first stdout msg}
             or croak(sprintf q{Can't print to STDOUT: %s}, $OS_ERROR);
-        print {*STDERR} q{first std_err msg}
+        print {*STDERR} q{first stderr msg}
             or croak(sprintf q{Can't print to STDERR: %s}, $OS_ERROR);
 
-        $obj = JIP::Daemon->new->reopen_std;
-        print {*STDOUT} q{second std_out msg}
+        is ref($obj->reopen_std), 'JIP::Daemon';
+
+        print {*STDOUT} q{second stdout msg}
             or croak(sprintf q{Can't print to STDOUT: %s}, $OS_ERROR);
-        print {*STDERR} q{second std_err msg}
+        print {*STDERR} q{second stderr msg}
             or croak(sprintf q{Can't print to STDERR: %s}, $OS_ERROR);
     };
 
-    is ref($obj), 'JIP::Daemon';
-    is_deeply[$std_out, $std_err], [q{first std_out msg}, q{first std_err msg}];
+    is $stdout, q{first stdout msg};
+    is $stderr, q{first stderr msg};
 };
 
 subtest 'daemonize. dry_run' => sub {
@@ -461,4 +493,13 @@ subtest 'daemonize. "on_fork_callback"' => sub {
         is ref($proc), 'JIP::Daemon';
     })->daemonize;
 };
+
+sub slurp {
+    my $fh = shift;
+
+    $INPUT_RECORD_SEPARATOR = undef;
+    my $data = <$fh>;
+
+    return $data;
+}
 
