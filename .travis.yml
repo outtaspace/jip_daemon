@@ -22,7 +22,7 @@ before_install:
     - "cpanm Capture::Tiny"
     - "cpanm Carp"
     - "cpanm POSIX"
-    - "JIP::ClassField@0.05"
+    - "cpanm JIP::ClassField@0.05"
 install:
     - "perl Makefile.PL && make test"
 sudo: false
