@@ -15,7 +15,7 @@ plan tests => 14;
 subtest 'Require some module' => sub {
     plan tests => 2;
 
-    use_ok 'JIP::Daemon', '0.03';
+    use_ok 'JIP::Daemon', '0.04-TRIAL';
     require_ok 'JIP::Daemon';
 
     diag(

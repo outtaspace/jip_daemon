@@ -9,7 +9,7 @@ use POSIX ();
 use Carp qw(carp croak);
 use English qw(-no_match_vars);
 
-our $VERSION = '0.03';
+our $VERSION = '0.04-TRIAL';
 
 my $maybe_set_subname = sub { $ARG[1]; };
 
@@ -318,7 +318,7 @@ JIP::Daemon - Daemonize server process.
 
 =head1 VERSION
 
-Version 0.03
+Version 0.04-TRIAL
 
 =head1 SYNOPSIS
 
