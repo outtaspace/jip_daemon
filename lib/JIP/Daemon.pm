@@ -203,6 +203,8 @@ sub daemonize {
 sub reopen_std {
     my $self = shift;
 
+    my $stdin = q{<}. $self->devnull;
+
     my $stdout;
     if (defined $self->stdout) {
         $stdout = $self->stdout;
@@ -221,6 +223,7 @@ sub reopen_std {
         $stderr = q{+>}. $self->devnull;
     }
 
+    open STDIN,  $stdin  or croak(sprintf q{Can't reopen STDIN: %s},  $OS_ERROR);
     open STDOUT, $stdout or croak(sprintf q{Can't reopen STDOUT: %s}, $OS_ERROR);
     open STDERR, $stderr or croak(sprintf q{Can't reopen STDERR: %s}, $OS_ERROR);
 
@@ -465,7 +468,7 @@ Daemonize server process.
 
     $proc = $proc->reopen_std;
 
-Reopen STDOUT, STDERR to /dev/null.
+Reopen STDIN, STDOUT, STDERR to /dev/null.
 
     my $proc = JIP::Daemon->new(
         stdout => '+>/path/to/out.log',
