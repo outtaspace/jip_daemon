@@ -314,11 +314,11 @@ __END__
 
 =head1 NAME
 
-JIP::Daemon - Daemonize server process.
+C<JIP::Daemon> - Daemonize server process.
 
 =head1 VERSION
 
-Version 0.04-TRIAL
+This document describes C<JIP::Daemon> version C<0.04-TRIAL>.
 
 =head1 SYNOPSIS
 
@@ -373,7 +373,7 @@ With on_fork_callback:
 
 =head1 ATTRIBUTES
 
-L<JIP::Daemon> implements the following attributes.
+C<JIP::Daemon> implements the following attributes.
 
 =head2 pid
 
@@ -479,7 +479,7 @@ If this parameter is supplied, redirect STDERR to file.
     my $proc = JIP::Daemon->new;
     my $proc = JIP::Daemon->new(dry_run => 1);
 
-Construct a new L<JIP::Daemon> object.
+Construct a new C<JIP::Daemon> object.
 
 =head2 daemonize
 
@@ -501,20 +501,24 @@ Reopen STDIN, STDOUT, STDERR to /dev/null.
 
     $proc = $proc->reopen_std;
 
-The stdin, stdout, and stderr arguments are file names that will be opened and be used to replace the standard file descriptors. These special modes only work with two-argument form of C<open>.
+The C<stdin>, C<stdout>, and C<stderr> arguments are file names that will be opened and be used to replace the standard file descriptors. These special modes only work with two-argument form of C<open>.
 
 =head2 drop_privileges
 
     my $proc = JIP::Daemon->new(uid => 1000, gid => 1000, umask => 0, cwd => q{/});
     $proc = $proc->drop_privileges;
 
-Change uid/gid/umask/cwd on demand.
+Change C<uid>/C<gid>/C<umask>/C<cwd> on demand.
 
 =head2 try_kill
 
     my $is_alive = $proc->try_kill(0);
 
-This is identical to Perl's builtin kill() function for sending signals to processes (often to terminate them).
+This is identical to Perl's builtin C<kill()> function for sending signals to processes (often to terminate them).
+
+=head1 DIAGNOSTICS
+
+None.
 
 =head2 status
 
@@ -522,9 +526,13 @@ This is identical to Perl's builtin kill() function for sending signals to proce
 
 Returns a list of process attributes: PID, is alive, is detached (in backgroung).
 
+=head1 CONFIGURATION AND ENVIRONMENT
+
+C<JIP::Daemon> requires no configuration files or environment variables.
+
 =head1 SEE ALSO
 
-POSIX, Privileges::Drop, Object::ForkAware, Proc::Daemon, Daemon::Daemonize
+L<POSIX>, L<Privileges::Drop>, L<Object::ForkAware>, L<Proc::Daemon>, L<Daemon::Daemonize>
 
 =head1 AUTHOR
 
@@ -532,7 +540,7 @@ Vladimir Zhavoronkov, C<< <flyweight at yandex.ru> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2015-2017 Vladimir Zhavoronkov.
+Copyright 2015-2018 Vladimir Zhavoronkov.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of the the Artistic License (2.0). You may obtain a
