@@ -27,7 +27,7 @@ subtest 'Require some module' => sub {
 };
 
 subtest 'new(). exceptions' => sub {
-    plan tests => 20;
+    plan tests => 18;
 
     eval { JIP::Daemon->new(uid => undef) } or do {
         like $EVAL_ERROR, qr{^Bad \s argument \s "uid"}x;
@@ -78,13 +78,6 @@ subtest 'new(). exceptions' => sub {
         like $EVAL_ERROR, qr{^Bad \s argument \s "on_fork_callback"}x;
     };
 
-    eval { JIP::Daemon->new(stdin => undef) } or do {
-        like $EVAL_ERROR, qr{^Bad \s argument \s "stdin"}x;
-    };
-    eval { JIP::Daemon->new(stdin => q{}) } or do {
-        like $EVAL_ERROR, qr{^Bad \s argument \s "stdin"}x;
-    };
-
     eval { JIP::Daemon->new(stdout => undef) } or do {
         like $EVAL_ERROR, qr{^Bad \s argument \s "stdout"}x;
     };
@@ -101,7 +94,7 @@ subtest 'new(). exceptions' => sub {
 };
 
 subtest 'new()' => sub {
-    plan tests => 17;
+    plan tests => 16;
 
     my $obj = JIP::Daemon->new;
     ok $obj, 'got instance if JIP::Daemon';
@@ -126,7 +119,6 @@ subtest 'new()' => sub {
         log_callback
         on_fork_callback
         devnull
-        stdin
         stdout
         stderr
     );
@@ -141,7 +133,6 @@ subtest 'new()' => sub {
     is $obj->logger,           undef;
     is $obj->on_fork_callback, undef;
     is $obj->devnull,          File::Spec->devnull;
-    is $obj->stdin,            undef;
     is $obj->stdout,           undef;
     is $obj->stderr,           undef;
 

@@ -50,7 +50,7 @@ subtest 'status()' => sub {
 };
 
 subtest 'reopen_std()' => sub {
-    plan tests => 9;
+    plan tests => 8;
 
     my $stdout_fh = File::Temp->new;
     my $stderr_fh = File::Temp->new;
@@ -65,12 +65,10 @@ subtest 'reopen_std()' => sub {
     );
 
     my $obj = JIP::Daemon->new(
-        stdin  => q{<}.   File::Spec->devnull,
         stdout => q{+>>}. $stdout_fh->filename,
         stderr => q{+>>}. $stderr_fh->filename,
     );
 
-    is $obj->stdin,  q{<}.   File::Spec->devnull;
     is $obj->stdout, q{+>>}. $stdout_fh->filename;
     is $obj->stderr, q{+>>}. $stderr_fh->filename;
 
@@ -95,7 +93,6 @@ subtest 'reopen_std()' => sub {
     is slurp($stderr_fh), q{second stderr msg};
 
     is_deeply $logs, [
-        'Reopen STDIN to: '.  $obj->stdin,
         'Reopen STDOUT to: '. $obj->stdout,
         'Reopen STDERR to: '. $obj->stderr,
     ];

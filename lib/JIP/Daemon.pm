@@ -51,7 +51,6 @@ has [qw(
     is_detached
     log_callback
     on_fork_callback
-    stdin
     stdout
     stderr
 )] => (get => q{+}, set => q{-});
@@ -127,14 +126,6 @@ sub new {
         $on_fork_callback = $maybe_set_subname->('on_fork_callback', $on_fork_callback);
     }
 
-    my $stdin;
-    if (exists $param{'stdin'}) {
-        $stdin = $param{'stdin'};
-
-        croak q{Bad argument "stdin"}
-            unless defined $stdin and length $stdin;
-    }
-
     my $stdout;
     if (exists $param{'stdout'}) {
         $stdout = $param{'stdout'};
@@ -162,7 +153,6 @@ sub new {
         ->_set_on_fork_callback($on_fork_callback)
         ->_set_pid($PROCESS_ID)
         ->_set_is_detached(0)
-        ->_set_stdin($stdin)
         ->_set_stdout($stdout)
         ->_set_stderr($stderr)
         ->_set_devnull;
@@ -213,15 +203,6 @@ sub daemonize {
 sub reopen_std {
     my $self = shift;
 
-    my $stdin;
-    if (defined $self->stdin) {
-        $stdin = $self->stdin;
-        $self->_log('Reopen STDIN to: %s', $stdin);
-    }
-    else {
-        $stdin = q{<}. $self->devnull;
-    }
-
     my $stdout;
     if (defined $self->stdout) {
         $stdout = $self->stdout;
@@ -240,7 +221,6 @@ sub reopen_std {
         $stderr = q{+>}. $self->devnull;
     }
 
-    open STDIN,  $stdin  or croak(sprintf q{Can't reopen STDIN: %s},  $OS_ERROR);
     open STDOUT, $stdout or croak(sprintf q{Can't reopen STDOUT: %s}, $OS_ERROR);
     open STDERR, $stderr or croak(sprintf q{Can't reopen STDERR: %s}, $OS_ERROR);
 
@@ -454,12 +434,6 @@ After daemonizing, and before exiting, run the given code in parent process.
 
 Returns a string representation of the null device.
 
-=head2 stdin
-
-    my $stdin = $proc->stdin;
-
-If this parameter is supplied, redirect STDIN to file.
-
 =head2 stdout
 
     my $stdout = $proc->stdout;
@@ -491,17 +465,16 @@ Daemonize server process.
 
     $proc = $proc->reopen_std;
 
-Reopen STDIN, STDOUT, STDERR to /dev/null.
+Reopen STDOUT, STDERR to /dev/null.
 
     my $proc = JIP::Daemon->new(
-        stdin  => '</path/to/in.log',
         stdout => '+>/path/to/out.log',
         stderr => '+>/path/to/err.log',
     );
 
     $proc = $proc->reopen_std;
 
-The C<stdin>, C<stdout>, and C<stderr> arguments are file names that will be opened and be used to replace the standard file descriptors. These special modes only work with two-argument form of C<open>.
+The C<stdout> and C<stderr> arguments are file names that will be opened and be used to replace the standard file descriptors. These special modes only work with two-argument form of C<open>.
 
 =head2 drop_privileges
 
