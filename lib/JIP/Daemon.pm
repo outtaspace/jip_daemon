@@ -53,6 +53,7 @@ has [qw(
     on_fork_callback
     stdout
     stderr
+    program_name
 )] => (get => q{+}, set => q{-});
 
 has devnull => (get => q{+}, set => q{-}, default => File::Spec->devnull);
@@ -142,6 +143,14 @@ sub new {
             unless defined $stderr and length $stderr;
     }
 
+    my $program_name = $PROGRAM_NAME;
+    if (exists $param{'program_name'}) {
+        $program_name = $param{'program_name'};
+
+        croak q{Bad argument "program_name"}
+            unless defined $program_name and length $program_name;
+    }
+
     return bless({}, $class)
         ->_set_dry_run($dry_run)
         ->_set_uid($uid)
@@ -155,6 +164,7 @@ sub new {
         ->_set_is_detached(0)
         ->_set_stdout($stdout)
         ->_set_stderr($stderr)
+        ->_set_program_name($program_name)
         ->_set_devnull;
 }
 
@@ -177,6 +187,7 @@ sub daemonize {
                 or croak(sprintf q{Can't start a new session: %s}, $OS_ERROR);
 
             $self->reopen_std;
+            $self->change_program_name;
 
             $self->_set_pid(POSIX::getpid())->_set_is_detached(1);
         }
@@ -280,6 +291,24 @@ sub status {
     my $pid  = $self->pid;
 
     return $pid, POSIX::kill($pid, 0) ? 1 : 0, $self->is_detached;
+}
+
+sub change_program_name {
+    my $self = shift;
+
+    my $old_program_name = $PROGRAM_NAME;
+    my $new_program_name = $self->program_name;
+
+    if ($new_program_name ne $old_program_name) {
+        $self->_log(
+            'The program name changed from %s to %s',
+            $old_program_name,
+            $new_program_name,
+        );
+        $PROGRAM_NAME = $new_program_name;
+    }
+
+    return $self;
 }
 
 # private methods
@@ -449,6 +478,12 @@ If this parameter is supplied, redirect STDOUT to file.
 
 If this parameter is supplied, redirect STDERR to file.
 
+=head2 program_name
+
+    my $program_name = $proc->program_name;
+
+Returns a string with name of the process.
+
 =head1 METHODS
 
 =head2 new
@@ -491,6 +526,13 @@ Change C<uid>/C<gid>/C<umask>/C<cwd> on demand.
     my $is_alive = $proc->try_kill(0);
 
 This is identical to Perl's builtin C<kill()> function for sending signals to processes (often to terminate them).
+
+=head2 change_program_name
+
+    my $proc = JIP::Daemon->new(program_name => 'tratata');
+    $proc = $proc->change_program_name;
+
+Changes the name of the program.
 
 =head1 DIAGNOSTICS
 
