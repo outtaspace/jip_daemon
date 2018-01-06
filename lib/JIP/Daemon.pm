@@ -9,7 +9,7 @@ use POSIX ();
 use Carp qw(carp croak);
 use English qw(-no_match_vars);
 
-our $VERSION = '0.04-TRIAL';
+our $VERSION = '0.04';
 
 my $maybe_set_subname = sub { $ARG[1]; };
 
@@ -330,7 +330,7 @@ JIP::Daemon - Daemonize server process.
 
 =head1 VERSION
 
-This document describes C<JIP::Daemon> version C<0.04-TRIAL>.
+This document describes C<JIP::Daemon> version C<0.04>.
 
 =head1 SYNOPSIS
 
