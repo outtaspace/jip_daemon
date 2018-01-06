@@ -326,7 +326,7 @@ __END__
 
 =head1 NAME
 
-C<JIP::Daemon> - Daemonize server process.
+JIP::Daemon - Daemonize server process.
 
 =head1 VERSION
 
@@ -484,7 +484,7 @@ If this parameter is supplied, redirect STDERR to file.
 
 Returns a string with name of the process.
 
-=head1 METHODS
+=head1 SUBROUTINES/METHODS
 
 =head2 new
 
@@ -534,15 +534,15 @@ This is identical to Perl's builtin C<kill()> function for sending signals to pr
 
 Changes the name of the program.
 
-=head1 DIAGNOSTICS
-
-None.
-
 =head2 status
 
     my ($pid, $is_alive, $is_detached) = $proc->status;
 
 Returns a list of process attributes: PID, is alive, is detached (in backgroung).
+
+=head1 DIAGNOSTICS
+
+None.
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
@@ -550,7 +550,7 @@ C<JIP::Daemon> requires no configuration files or environment variables.
 
 =head1 SEE ALSO
 
-L<POSIX>, L<Privileges::Drop>, L<Object::ForkAware>, L<Proc::Daemon>, L<Daemon::Daemonize>
+L<POSIX>, L<Privileges::Drop>, L<Object::ForkAware>, L<Proc::Daemon>, L<Daemon::Daemonize>.
 
 =head1 AUTHOR
 
