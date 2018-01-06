@@ -11,6 +11,17 @@ my %write_makefile_param = (
     LICENSE          => 'artistic_2',
     PL_FILES         => {},
     MIN_PERL_VERSION => 5.006,
+    META_MERGE       => {
+        resources      => {
+            license    => ['http://www.opensource.org/licenses/artistic-license-2.0'],
+            bugtracker => {web => 'https://github.com/outtaspace/jip_daemon/issues'},
+            repository => {
+                type => 'git',
+                url  => 'https://github.com/outtaspace/jip_daemon.git',
+                web  => 'https://github.com/outtaspace/jip_daemon',
+            },
+        },
+    },
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => 0,
     },
