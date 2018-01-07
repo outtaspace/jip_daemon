@@ -12,6 +12,7 @@ my %write_makefile_param = (
     PL_FILES         => {},
     MIN_PERL_VERSION => 5.006,
     META_MERGE       => {
+        'meta-spec'    => {version => 2},
         resources      => {
             license    => ['http://www.opensource.org/licenses/artistic-license-2.0'],
             bugtracker => {web => 'https://github.com/outtaspace/jip_daemon/issues'},
