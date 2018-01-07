@@ -20,10 +20,10 @@ else {
 subtest 'Require some module' => sub {
     plan tests => 3;
 
-    use_ok 'JIP::Daemon', '0.04';
+    use_ok 'JIP::Daemon', '0.041';
 
     require_ok 'JIP::Daemon';
-    is $JIP::Daemon::VERSION, '0.04';
+    is $JIP::Daemon::VERSION, '0.041';
 
     diag(
         sprintf 'Testing JIP::Daemon %s, Perl %s, %s',
